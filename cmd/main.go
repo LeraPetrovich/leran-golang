@@ -4,11 +4,15 @@ import (
 	"log"
 
 	"github.com/LeraPetrovich/learn-golang/pkg/handler"
+	"github.com/LeraPetrovich/learn-golang/pkg/repository"
+	"github.com/LeraPetrovich/learn-golang/pkg/service"
 	"github.com/LeraPetrovich/learn-golang/server"
 )
 
 func main() {
-	handler := new(handler.Handler)
+	repository := repository.NewRepository()
+	service := service.NewService(repository)
+	handler := handler.NewHandler(service)
 
 	svr := new(server.Server)
 

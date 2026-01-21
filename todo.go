@@ -1,17 +1,13 @@
 package lerangolang
 
+// структура элемента таблицы todo list
 type TodoList struct {
 	Id          int    `json:"-"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
 }
 
-type UserList struct {
-	Id     int
-	UserId int
-	ListId int
-}
-
+// стрктура элемента таблицы todo item
 type TodoItem struct {
 	Id          int    `json:"-"`
 	Title       string `json:"title"`
@@ -19,6 +15,14 @@ type TodoItem struct {
 	Done        bool   `json:"done"`
 }
 
+// структура элемента таблицы связи User <->List
+type UserList struct {
+	Id     int
+	UserId int
+	ListId int
+}
+
+// структура элемента таблицы связи List <->Item
 type ListItem struct {
 	Id     int
 	ListId int

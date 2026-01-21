@@ -6,10 +6,13 @@ import (
 	"time"
 )
 
+// создаем сущность сервера (ее можно переиспользовать)
 type Server struct {
 	httpServer *http.Server
 }
 
+// функции работы с этой сущностью
+// hendler это структура в которой хранится рунтинг с функциями обработки запросов с клиента
 func (s *Server) Run(port string, handler http.Handler) error {
 	s.httpServer = &http.Server{
 		Addr:           ":" + port,
