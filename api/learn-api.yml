@@ -1,0 +1,194 @@
+openapi: 3.0.2
+info:
+  title: LEARN API.
+  version: 0.0.1
+paths:
+  /signin:
+    post:
+      operationId: signin
+      requestBody:
+        $ref: "#/components/requestBodies/SigninRequest"
+      responses:
+        '200':
+          description: auth token
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - token
+                properties:
+                  token:
+                    type: string
+                    example: "NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODQ3..."
+        'default':
+          $ref: '#/components/responses/Error'
+  /posts:
+    get:
+      operationId: getPosts
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: payload
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+        'default':
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: createPost
+      security:
+        - BearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/PostRequest'
+      responses:
+        '200':
+          description: created post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        'default':
+          $ref: '#/components/responses/Error'
+  /posts/{post_id}:
+    get:
+      operationId: getPost
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/post_id'
+      responses:
+        '200':
+          description: post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        'default':
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: updatePost
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/post_id'
+      requestBody:
+        $ref: '#/components/requestBodies/PostRequest'
+      responses:
+        '200':
+          description: updated post
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        'default':
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deletePost
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/post_id'
+      responses:
+        '200':
+          description: post deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        'default':
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    post_id:
+      name: post_id
+      in: path
+      required: true
+      schema:
+        type: integer
+  schemas: 
+    SigninRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    Post:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - content
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+
+  requestBodies:
+    SigninRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - username
+              - password
+            properties:
+              username:
+                type: string
+              password:
+                type: string
+    PostRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - title
+              - description
+              - content
+            properties:
+              title:
+                type: string
+              description:
+                type: string
+              content:
+                type: string
+  responses:
+    Error:
+      description: Some error during request processing
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error:
+                type: string
+              error-key:
+                type: string
+              error-details:
+                type: string
