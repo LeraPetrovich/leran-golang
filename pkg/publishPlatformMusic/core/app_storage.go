@@ -11,7 +11,7 @@ type Author struct {
 }
 
 type AuthorsList struct {
-	Items []Author
+	Items []*Author
 }
 
 type Album struct {
@@ -78,7 +78,7 @@ type AppStorage interface {
 	AddCoAuthorToTrack(ctx context.Context, idTrack int, idAuthor int) error
 
 	RemoveCoAuthorFromAlbum(ctx context.Context, idAlbum int, idAuthor int) error
-	RemoveCoAuthorFromTrack(ctx context.Context, idTrack int, idAuthor int) error
+	RemoveCoAuthorFromTrack(ctx context.Context, idAlbum int, idAuthor int) error
 	RemoveTrack(ctx context.Context, idTrack int) error
 	RemoveAlbum(ctx context.Context, idAlbum int) error
 }
