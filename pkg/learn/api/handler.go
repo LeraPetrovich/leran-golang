@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"example.com/learn/pkg/learn/service"
 	"example.com/learn/pkg/learn/api/oas"
+	"example.com/learn/pkg/learn/service"
 	"go.uber.org/zap"
 )
 
@@ -15,12 +15,12 @@ type Handler struct {
 	jwtSecret         []byte
 }
 
-type Config struct {
+type HandlerConfig struct {
 	PostgresURI string
 	JwtSecret   []byte
 }
 
-func New(logger *zap.Logger, cnf Config) (*Handler, error) {
+func New(logger *zap.Logger, cnf HandlerConfig) (*Handler, error) {
 	service, err := service.New(logger, service.Config{AppPostgresURI: cnf.PostgresURI})
 
 	if err != nil {

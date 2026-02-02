@@ -13,7 +13,7 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func (h *Handler) SignIn(ctx context.Context, req *oas.SigninReq) (*oas.SigninOK, error) {
+func (h *Handler) Signin(ctx context.Context, req *oas.SigninReq) (*oas.SigninOK, error) {
 	err := h.appPrivateService.SignIn(ctx, req.Username, req.Password)
 	if err != nil {
 		return nil, err
