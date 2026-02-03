@@ -1,0 +1,601 @@
+openapi: 3.0.2
+info:
+  title: LERA MUSIC
+  version: 0.0.1
+
+paths:
+  /signin:
+    post:
+      operationId: signin
+      requestBody:
+        $ref: "#/components/requestBodies/SigninRequest"
+      responses:
+        '200':
+          description: auth token
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - token
+                properties:
+                  token:
+                    type: string
+                    example: "NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODQ3..."
+        'default':
+          $ref: '#/components/responses/Error'
+          
+  /authors:
+    get:
+      operationId: getAllAuthors
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: authors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Author"
+        'default':
+          $ref: '#/components/responses/Error'
+      
+          
+  /authors/{id_author}:
+    get:
+      operationId: getAuthor
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_author"
+      responses:
+        '200':
+          description: author
+          content:
+            application/json:
+             schema:
+                $ref: "#/components/schemas/Author"
+        'default':
+          $ref: '#/components/responses/Error'
+          
+  /authors/{id_author}/tracks:
+    get:
+      operationId: getTracksFromAuthor
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_author"
+      responses:
+        '200':
+          description: get tracks from author
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Track'
+        'default':
+          $ref: '#/components/responses/Error'
+          
+  /authors/{id_author}/albums:
+    get:
+      operationId: getAlbumsFromAuthor
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_author"
+      responses:
+        '200':
+          description: get albums from author
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Album'
+        'default':
+          $ref: '#/components/responses/Error'
+          
+  /albums:
+    get:
+      operationId: getAllAlbums
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: get all albums
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Album"
+        'default':
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: createNewAlbum
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+              properties:
+                title:
+                  type: string
+                description: 
+                  type: string
+      responses:
+        '201':
+          description: create album
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Album"
+        'default':
+          $ref: '#/components/responses/Error'
+          
+  /albums/{id_album}:
+    get:
+      operationId: getAlbumFromId
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_album"
+      responses:
+        '200':
+          description: get album from id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Album"
+        'default':
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: updateAlbum
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_album"
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateAlbum'
+      responses:
+        '200':
+          description: update album
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Album"
+        'default':
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteAlbum
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_album"
+      responses:
+        '204':
+          description: delete album
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        'default':
+          $ref: '#/components/responses/Error'
+    
+          
+  /albums/{id_album}/tracks:
+    get:
+      operationId: getTracksFromAlbum
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_album"
+      responses:
+        '200':
+          description: get tracks from album
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Track'
+        'default':
+          $ref: '#/components/responses/Error'
+          
+  /albums/{id_album}/authors:
+    get:
+      operationId: getAuthorsFromAlbum
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_album"
+      responses:
+        '200':
+          description: get authors from album
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Author'
+        'default':
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: pushNewAuthorFromAlbum
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_album"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id_author
+              properties:
+                id_author:
+                  type: integer
+      responses:
+        '200':
+          description: update authors album
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        'default':
+          $ref: '#/components/responses/Error'
+          
+  /albums/{id_album}/authors/{id_author}:
+    delete:
+      operationId: deleteAuthorToAlbum
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_album"
+        - $ref: "#/components/parameters/id_author"
+      responses:
+        '204':
+          description: delete author to album
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        'default':
+          $ref: '#/components/responses/Error'
+  /tracks:
+    get:
+      operationId: getAllTracks
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: tracks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Track"
+        'default':
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: createNewTrack
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name 
+                - id_album
+                - id_author
+              properties:
+                name:
+                  type: string
+                id_album:
+                  type: integer
+                id_author:
+                  type: integer
+      responses:
+        '201':
+          description: create track
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        'default':
+          $ref: '#/components/responses/Error'
+          
+  /tracks/{id_track}:
+    get:
+      operationId: getTrackById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_track"
+      responses:
+        '200':
+          description: get track by id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        'default':
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: updateTrack
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_track"
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateTrack'
+      responses:
+        '200':
+          description: update track
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        'default':
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteTrack
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_track"
+      responses:
+        '204':
+          description: delete track
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        'default':
+          $ref: '#/components/responses/Error'
+          
+  /tracks/{id_track}/album:
+    get:
+      operationId: getAlbumFromTrack
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_track"
+      responses:
+        '200':
+          description: get album from track
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Album'
+        'default':
+          $ref: '#/components/responses/Error'
+          
+  /tracks/{id_track}/authors:
+    get:
+      operationId: getAuthorsFromTrack
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_track"
+      responses:
+        '200':
+          description: get authors from track
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Author'
+        'default':
+          $ref: '#/components/responses/Error'
+          
+    patch:
+      operationId: pushNewAuthorFromTrack
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_track"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id_author
+              properties:
+                id_author:
+                  type: integer
+      responses:
+        '200':
+          description: update authors track
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        'default':
+          $ref: '#/components/responses/Error'
+          
+  /tracks/{id_track}/authors/{id_author}:
+    delete:
+      operationId: deleteAuthorToTrack
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/id_track"
+        - $ref: "#/components/parameters/id_author"
+      responses:
+        '204':
+          description: delete author to track
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        'default':
+          $ref: '#/components/responses/Error'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      
+  requestBodies:
+    SigninRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - username
+              - password
+            properties:
+              username:
+                type: string
+              password:
+                type: string
+                
+    UpdateTrack:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - id_album
+            properties:
+              name:
+                type: string
+              id_album:
+                type: integer
+    UpdateAlbum:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - title
+              - description
+            properties:
+              title:
+                type: string
+              description:
+                type: string
+                
+  parameters:
+    id_author:
+      name: id_author
+      in: path
+      required: true
+      schema:
+        type: integer
+    id_track:
+      name: id_track
+      in: path
+      required: true
+      schema:
+        type: integer
+    id_album:
+      name: id_album
+      in: path
+      required: true
+      schema:
+        type: integer
+        
+  schemas:
+    Author: 
+      type: object
+      required:
+        - id
+        - username
+        - name
+      properties:
+        id: 
+          type: integer
+        username:
+          type: string
+        name:
+          type: string
+          
+    Track:
+      type: object
+      required:
+        - id
+        - name
+        - id_album
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        id_album:
+          type: integer
+          
+    Album:
+      type: object
+      required:
+        - id
+        - title
+        - description
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          
+  responses:
+    Error: 
+      description: Some error during request processing
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error: 
+                type: string
+              error-key:
+                type: string
+              error-details:
+                type: string

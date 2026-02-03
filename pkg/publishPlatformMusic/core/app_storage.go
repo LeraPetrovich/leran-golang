@@ -54,16 +54,19 @@ type AppStorage interface {
 
 	//getAuthorInfo
 	GetAuthorFromId(ctx context.Context, authorId int) (*Author, error)
+	GetAllAuthors(ctx context.Context) (*AuthorsList, error)
 
 	//get track
 	GetTrackById(ctx context.Context, trackId int) (*Track, error)
 	GetTracksInAlbum(ctx context.Context, albumId int) (*TrackList, error)
 	GetAllTrackFromAuthor(ctx context.Context, authorId int) (*TrackList, error)
+	GetAllTracks(ctx context.Context) (*TrackList, error)
 
 	//get album
 	GetAllAlbumsFromAuthor(ctx context.Context, authorId int) (*AlbumsList, error)
 	GetAlbumFromId(ctx context.Context, albumId int) (*Album, error)
 	GetAlbumFromTrackId(ctx context.Context, trackId int) (*Album, error)
+	GetAllAlbums(ctx context.Context) (*AlbumsList, error)
 
 	//create
 	CreateNewAlbum(ctx context.Context, album *Album, authorId int) (*Album, error)
@@ -78,7 +81,7 @@ type AppStorage interface {
 	AddCoAuthorToTrack(ctx context.Context, idTrack int, idAuthor int) error
 
 	RemoveCoAuthorFromAlbum(ctx context.Context, idAlbum int, idAuthor int) error
-	RemoveCoAuthorFromTrack(ctx context.Context, idAlbum int, idAuthor int) error
+	RemoveCoAuthorFromTrack(ctx context.Context, idTrack int, idAuthor int) error
 	RemoveTrack(ctx context.Context, idTrack int) error
 	RemoveAlbum(ctx context.Context, idAlbum int) error
 }

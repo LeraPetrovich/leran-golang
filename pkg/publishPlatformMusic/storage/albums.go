@@ -6,6 +6,34 @@ import (
 	"example.com/learn/pkg/publishPlatformMusic/core"
 )
 
+func (s *storage) GetAllAlbums(ctx context.Context) (*core.AlbumsList, error) {
+	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
+	defer cancel()
+
+	var albums []*core.Album
+
+	rows, err := s.postgres.Query(contextWait, `
+	SELECT id, title, description
+	FROM albums
+	`)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var album core.Album
+		err := rows.Scan(&album.Id, &album.Title, &album.Description)
+		if err != nil {
+			return nil, err
+		}
+		albums = append(albums, &album)
+	}
+
+	return &core.AlbumsList{Items: albums}, nil
+}
+
 func (s *storage) GetAlbumFromId(ctx context.Context, albumId int) (*core.Album, error) {
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()

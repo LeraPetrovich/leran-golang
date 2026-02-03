@@ -6,6 +6,33 @@ import (
 	"example.com/learn/pkg/publishPlatformMusic/core"
 )
 
+func (s *storage) GetAllTracks(ctx context.Context) (*core.TrackList, error) {
+	contextTime, cancel := context.WithTimeout(ctx, fastQueryTimeout)
+	defer cancel()
+
+	var tracks []*core.Track
+
+	rows, err := s.postgres.Query(contextTime, `
+	SELECT id, fk_id_album, name
+	FROM tracks
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		track := &core.Track{}
+		err := rows.Scan(&track.Id, &track.IdAlbum, &track.Name)
+		if err != nil {
+			return nil, err
+		}
+		tracks = append(tracks, track)
+	}
+
+	return &core.TrackList{Items: tracks}, nil
+}
+
 func (s *storage) GetTrackById(ctx context.Context, trackId int) (*core.Track, error) {
 	contextTime, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
