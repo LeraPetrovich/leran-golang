@@ -8,6 +8,10 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// AddAuthorToAlbum implements addAuthorToAlbum operation.
+	//
+	// PATCH /albums/{id_album}/authors
+	AddAuthorToAlbum(ctx context.Context, req *AddAuthorToAlbumReq, params AddAuthorToAlbumParams) (*AddAuthorToAlbumOK, error)
 	// CreateNewAlbum implements createNewAlbum operation.
 	//
 	// POST /albums
@@ -19,19 +23,15 @@ type Handler interface {
 	// DeleteAlbum implements deleteAlbum operation.
 	//
 	// DELETE /albums/{id_album}
-	DeleteAlbum(ctx context.Context, params DeleteAlbumParams) (*DeleteAlbumNoContent, error)
-	// DeleteAuthorToAlbum implements deleteAuthorToAlbum operation.
+	DeleteAlbum(ctx context.Context, params DeleteAlbumParams) error
+	// DeleteAuthorFromAlbum implements deleteAuthorFromAlbum operation.
 	//
 	// DELETE /albums/{id_album}/authors/{id_author}
-	DeleteAuthorToAlbum(ctx context.Context, params DeleteAuthorToAlbumParams) (*DeleteAuthorToAlbumNoContent, error)
-	// DeleteAuthorToTrack implements deleteAuthorToTrack operation.
-	//
-	// DELETE /tracks/{id_track}/authors/{id_author}
-	DeleteAuthorToTrack(ctx context.Context, params DeleteAuthorToTrackParams) (*DeleteAuthorToTrackNoContent, error)
+	DeleteAuthorFromAlbum(ctx context.Context, params DeleteAuthorFromAlbumParams) error
 	// DeleteTrack implements deleteTrack operation.
 	//
 	// DELETE /tracks/{id_track}
-	DeleteTrack(ctx context.Context, params DeleteTrackParams) (*DeleteTrackNoContent, error)
+	DeleteTrack(ctx context.Context, params DeleteTrackParams) error
 	// GetAlbumFromId implements getAlbumFromId operation.
 	//
 	// GET /albums/{id_album}
@@ -80,18 +80,14 @@ type Handler interface {
 	//
 	// GET /authors/{id_author}/tracks
 	GetTracksFromAuthor(ctx context.Context, params GetTracksFromAuthorParams) ([]Track, error)
-	// PushNewAuthorFromAlbum implements pushNewAuthorFromAlbum operation.
+	// Refresh implements refresh operation.
 	//
-	// PATCH /albums/{id_album}/authors
-	PushNewAuthorFromAlbum(ctx context.Context, req *PushNewAuthorFromAlbumReq, params PushNewAuthorFromAlbumParams) (*PushNewAuthorFromAlbumOK, error)
-	// PushNewAuthorFromTrack implements pushNewAuthorFromTrack operation.
-	//
-	// PATCH /tracks/{id_track}/authors
-	PushNewAuthorFromTrack(ctx context.Context, req *PushNewAuthorFromTrackReq, params PushNewAuthorFromTrackParams) (*PushNewAuthorFromTrackOK, error)
+	// POST /refresh
+	Refresh(ctx context.Context, req *RefreshReq) (*TokenPair, error)
 	// Signin implements signin operation.
 	//
 	// POST /signin
-	Signin(ctx context.Context, req *SigninReq) (*SigninOK, error)
+	Signin(ctx context.Context, req *SigninReq) (*TokenPair, error)
 	// UpdateAlbum implements updateAlbum operation.
 	//
 	// PATCH /albums/{id_album}

@@ -32,6 +32,9 @@ func New(logger *zap.Logger, postgresURI string, conf StorageConf) (*storage, er
 	poolConfig.MaxConns = int32(conf.PostgresConnections)
 
 	postgres, err := pgxpool.NewWithConfig(context.TODO(), poolConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	return &storage{
 		logger:   logger,

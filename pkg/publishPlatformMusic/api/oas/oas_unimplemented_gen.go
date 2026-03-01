@@ -13,6 +13,13 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
+// AddAuthorToAlbum implements addAuthorToAlbum operation.
+//
+// PATCH /albums/{id_album}/authors
+func (UnimplementedHandler) AddAuthorToAlbum(ctx context.Context, req *AddAuthorToAlbumReq, params AddAuthorToAlbumParams) (r *AddAuthorToAlbumOK, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateNewAlbum implements createNewAlbum operation.
 //
 // POST /albums
@@ -30,29 +37,22 @@ func (UnimplementedHandler) CreateNewTrack(ctx context.Context, req *CreateNewTr
 // DeleteAlbum implements deleteAlbum operation.
 //
 // DELETE /albums/{id_album}
-func (UnimplementedHandler) DeleteAlbum(ctx context.Context, params DeleteAlbumParams) (r *DeleteAlbumNoContent, _ error) {
-	return r, ht.ErrNotImplemented
+func (UnimplementedHandler) DeleteAlbum(ctx context.Context, params DeleteAlbumParams) error {
+	return ht.ErrNotImplemented
 }
 
-// DeleteAuthorToAlbum implements deleteAuthorToAlbum operation.
+// DeleteAuthorFromAlbum implements deleteAuthorFromAlbum operation.
 //
 // DELETE /albums/{id_album}/authors/{id_author}
-func (UnimplementedHandler) DeleteAuthorToAlbum(ctx context.Context, params DeleteAuthorToAlbumParams) (r *DeleteAuthorToAlbumNoContent, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// DeleteAuthorToTrack implements deleteAuthorToTrack operation.
-//
-// DELETE /tracks/{id_track}/authors/{id_author}
-func (UnimplementedHandler) DeleteAuthorToTrack(ctx context.Context, params DeleteAuthorToTrackParams) (r *DeleteAuthorToTrackNoContent, _ error) {
-	return r, ht.ErrNotImplemented
+func (UnimplementedHandler) DeleteAuthorFromAlbum(ctx context.Context, params DeleteAuthorFromAlbumParams) error {
+	return ht.ErrNotImplemented
 }
 
 // DeleteTrack implements deleteTrack operation.
 //
 // DELETE /tracks/{id_track}
-func (UnimplementedHandler) DeleteTrack(ctx context.Context, params DeleteTrackParams) (r *DeleteTrackNoContent, _ error) {
-	return r, ht.ErrNotImplemented
+func (UnimplementedHandler) DeleteTrack(ctx context.Context, params DeleteTrackParams) error {
+	return ht.ErrNotImplemented
 }
 
 // GetAlbumFromId implements getAlbumFromId operation.
@@ -139,24 +139,17 @@ func (UnimplementedHandler) GetTracksFromAuthor(ctx context.Context, params GetT
 	return r, ht.ErrNotImplemented
 }
 
-// PushNewAuthorFromAlbum implements pushNewAuthorFromAlbum operation.
+// Refresh implements refresh operation.
 //
-// PATCH /albums/{id_album}/authors
-func (UnimplementedHandler) PushNewAuthorFromAlbum(ctx context.Context, req *PushNewAuthorFromAlbumReq, params PushNewAuthorFromAlbumParams) (r *PushNewAuthorFromAlbumOK, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// PushNewAuthorFromTrack implements pushNewAuthorFromTrack operation.
-//
-// PATCH /tracks/{id_track}/authors
-func (UnimplementedHandler) PushNewAuthorFromTrack(ctx context.Context, req *PushNewAuthorFromTrackReq, params PushNewAuthorFromTrackParams) (r *PushNewAuthorFromTrackOK, _ error) {
+// POST /refresh
+func (UnimplementedHandler) Refresh(ctx context.Context, req *RefreshReq) (r *TokenPair, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
 // Signin implements signin operation.
 //
 // POST /signin
-func (UnimplementedHandler) Signin(ctx context.Context, req *SigninReq) (r *SigninOK, _ error) {
+func (UnimplementedHandler) Signin(ctx context.Context, req *SigninReq) (r *TokenPair, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

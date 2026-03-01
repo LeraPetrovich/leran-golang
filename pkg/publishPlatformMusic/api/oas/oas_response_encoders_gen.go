@@ -12,6 +12,20 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+func encodeAddAuthorToAlbumResponse(response *AddAuthorToAlbumOK, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+	span.SetStatus(codes.Ok, http.StatusText(200))
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeCreateNewAlbumResponse(response *Album, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(201)
@@ -41,57 +55,22 @@ func encodeCreateNewTrackResponse(response *Track, w http.ResponseWriter, span t
 }
 
 func encodeDeleteAlbumResponse(response *DeleteAlbumNoContent, w http.ResponseWriter, span trace.Span) error {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(204)
 	span.SetStatus(codes.Ok, http.StatusText(204))
-
-	e := new(jx.Encoder)
-	response.Encode(e)
-	if _, err := e.WriteTo(w); err != nil {
-		return errors.Wrap(err, "write")
-	}
 
 	return nil
 }
 
-func encodeDeleteAuthorToAlbumResponse(response *DeleteAuthorToAlbumNoContent, w http.ResponseWriter, span trace.Span) error {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+func encodeDeleteAuthorFromAlbumResponse(response *DeleteAuthorFromAlbumNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 	span.SetStatus(codes.Ok, http.StatusText(204))
-
-	e := new(jx.Encoder)
-	response.Encode(e)
-	if _, err := e.WriteTo(w); err != nil {
-		return errors.Wrap(err, "write")
-	}
-
-	return nil
-}
-
-func encodeDeleteAuthorToTrackResponse(response *DeleteAuthorToTrackNoContent, w http.ResponseWriter, span trace.Span) error {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(204)
-	span.SetStatus(codes.Ok, http.StatusText(204))
-
-	e := new(jx.Encoder)
-	response.Encode(e)
-	if _, err := e.WriteTo(w); err != nil {
-		return errors.Wrap(err, "write")
-	}
 
 	return nil
 }
 
 func encodeDeleteTrackResponse(response *DeleteTrackNoContent, w http.ResponseWriter, span trace.Span) error {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(204)
 	span.SetStatus(codes.Ok, http.StatusText(204))
-
-	e := new(jx.Encoder)
-	response.Encode(e)
-	if _, err := e.WriteTo(w); err != nil {
-		return errors.Wrap(err, "write")
-	}
 
 	return nil
 }
@@ -296,7 +275,7 @@ func encodeGetTracksFromAuthorResponse(response []Track, w http.ResponseWriter, 
 	return nil
 }
 
-func encodePushNewAuthorFromAlbumResponse(response *PushNewAuthorFromAlbumOK, w http.ResponseWriter, span trace.Span) error {
+func encodeRefreshResponse(response *TokenPair, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 	span.SetStatus(codes.Ok, http.StatusText(200))
@@ -310,21 +289,7 @@ func encodePushNewAuthorFromAlbumResponse(response *PushNewAuthorFromAlbumOK, w 
 	return nil
 }
 
-func encodePushNewAuthorFromTrackResponse(response *PushNewAuthorFromTrackOK, w http.ResponseWriter, span trace.Span) error {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(200)
-	span.SetStatus(codes.Ok, http.StatusText(200))
-
-	e := new(jx.Encoder)
-	response.Encode(e)
-	if _, err := e.WriteTo(w); err != nil {
-		return errors.Wrap(err, "write")
-	}
-
-	return nil
-}
-
-func encodeSigninResponse(response *SigninOK, w http.ResponseWriter, span trace.Span) error {
+func encodeSigninResponse(response *TokenPair, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 	span.SetStatus(codes.Ok, http.StatusText(200))

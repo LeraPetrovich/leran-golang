@@ -11,17 +11,36 @@ paths:
         $ref: "#/components/requestBodies/SigninRequest"
       responses:
         '200':
-          description: auth token
+          description: access and refresh tokens
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - token
-                properties:
-                  token:
-                    type: string
-                    example: "NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODQ3..."
+                $ref: "#/components/schemas/TokenPair"
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /refresh:
+    post:
+      operationId: refresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: new access and refresh tokens
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPair"
         'default':
           $ref: '#/components/responses/Error'
           
@@ -184,13 +203,6 @@ paths:
       responses:
         '204':
           description: delete album
-          content: 
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
         'default':
           $ref: '#/components/responses/Error'
     
@@ -233,7 +245,7 @@ paths:
         'default':
           $ref: '#/components/responses/Error'
     patch:
-      operationId: pushNewAuthorFromAlbum
+      operationId: addAuthorToAlbum
       security:
         - BearerAuth: []
       parameters:
@@ -264,7 +276,7 @@ paths:
           
   /albums/{id_album}/authors/{id_author}:
     delete:
-      operationId: deleteAuthorToAlbum
+      operationId: deleteAuthorFromAlbum
       security:
         - BearerAuth: []
       parameters:
@@ -272,14 +284,7 @@ paths:
         - $ref: "#/components/parameters/id_author"
       responses:
         '204':
-          description: delete author to album
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
+          description: delete author from album
         'default':
           $ref: '#/components/responses/Error'
   /tracks:
@@ -371,13 +376,6 @@ paths:
       responses:
         '204':
           description: delete track
-          content: 
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
         'default':
           $ref: '#/components/responses/Error'
           
@@ -417,56 +415,6 @@ paths:
         'default':
           $ref: '#/components/responses/Error'
           
-    patch:
-      operationId: pushNewAuthorFromTrack
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/id_track"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - id_author
-              properties:
-                id_author:
-                  type: integer
-      responses:
-        '200':
-          description: update authors track
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-        'default':
-          $ref: '#/components/responses/Error'
-          
-  /tracks/{id_track}/authors/{id_author}:
-    delete:
-      operationId: deleteAuthorToTrack
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/id_track"
-        - $ref: "#/components/parameters/id_author"
-      responses:
-        '204':
-          description: delete author to track
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-        'default':
-          $ref: '#/components/responses/Error'
 
 components:
   securitySchemes:
@@ -541,7 +489,20 @@ components:
         type: integer
         
   schemas:
-    Author: 
+    TokenPair:
+      type: object
+      required:
+        - access_token
+        - refresh_token
+      properties:
+        access_token:
+          type: string
+          example: "NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODQ3..."
+        refresh_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    Author:
       type: object
       required:
         - id

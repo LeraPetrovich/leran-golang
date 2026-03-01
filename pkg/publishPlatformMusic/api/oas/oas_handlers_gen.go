@@ -33,6 +33,217 @@ func (c *codeRecorder) Unwrap() http.ResponseWriter {
 	return c.ResponseWriter
 }
 
+// handleAddAuthorToAlbumRequest handles addAuthorToAlbum operation.
+//
+// PATCH /albums/{id_album}/authors
+func (s *Server) handleAddAuthorToAlbumRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+	statusWriter := &codeRecorder{ResponseWriter: w}
+	w = statusWriter
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("addAuthorToAlbum"),
+		semconv.HTTPRequestMethodKey.String("PATCH"),
+		semconv.HTTPRouteKey.String("/albums/{id_album}/authors"),
+	}
+
+	// Start a span for this request.
+	ctx, span := s.cfg.Tracer.Start(r.Context(), AddAuthorToAlbumOperation,
+		trace.WithAttributes(otelAttrs...),
+		serverSpanKind,
+	)
+	defer span.End()
+
+	// Add Labeler to context.
+	labeler := &Labeler{attrs: otelAttrs}
+	ctx = contextWithLabeler(ctx, labeler)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		elapsedDuration := time.Since(startTime)
+
+		attrSet := labeler.AttributeSet()
+		attrs := attrSet.ToSlice()
+		code := statusWriter.status
+		if code != 0 {
+			codeAttr := semconv.HTTPResponseStatusCode(code)
+			attrs = append(attrs, codeAttr)
+			span.SetAttributes(codeAttr)
+		}
+		attrOpt := metric.WithAttributes(attrs...)
+
+		// Increment request counter.
+		s.requests.Add(ctx, 1, attrOpt)
+
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		s.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), attrOpt)
+	}()
+
+	var (
+		recordError = func(stage string, err error) {
+			span.RecordError(err)
+
+			// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#status
+			// Span Status MUST be left unset if HTTP status code was in the 1xx, 2xx or 3xx ranges,
+			// unless there was another error (e.g., network error receiving the response body; or 3xx codes with
+			// max redirects exceeded), in which case status MUST be set to Error.
+			code := statusWriter.status
+			if code < 100 || code >= 500 {
+				span.SetStatus(codes.Error, stage)
+			}
+
+			attrSet := labeler.AttributeSet()
+			attrs := attrSet.ToSlice()
+			if code != 0 {
+				attrs = append(attrs, semconv.HTTPResponseStatusCode(code))
+			}
+
+			s.errors.Add(ctx, 1, metric.WithAttributes(attrs...))
+		}
+		err          error
+		opErrContext = ogenerrors.OperationContext{
+			Name: AddAuthorToAlbumOperation,
+			ID:   "addAuthorToAlbum",
+		}
+	)
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			sctx, ok, err := s.securityBearerAuth(ctx, AddAuthorToAlbumOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "BearerAuth",
+					Err:              err,
+				}
+				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w, span); encodeErr != nil {
+					defer recordError("Security:BearerAuth", err)
+				}
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 0
+				ctx = sctx
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			err = &ogenerrors.SecurityError{
+				OperationContext: opErrContext,
+				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
+			}
+			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w, span); encodeErr != nil {
+				defer recordError("Security", err)
+			}
+			return
+		}
+	}
+	params, err := decodeAddAuthorToAlbumParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+
+	var rawBody []byte
+	request, rawBody, close, err := s.decodeAddAuthorToAlbumRequest(r)
+	if err != nil {
+		err = &ogenerrors.DecodeRequestError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeRequest", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+	defer func() {
+		if err := close(); err != nil {
+			recordError("CloseRequest", err)
+		}
+	}()
+
+	var response *AddAuthorToAlbumOK
+	if m := s.cfg.Middleware; m != nil {
+		mreq := middleware.Request{
+			Context:          ctx,
+			OperationName:    AddAuthorToAlbumOperation,
+			OperationSummary: "",
+			OperationID:      "addAuthorToAlbum",
+			Body:             request,
+			RawBody:          rawBody,
+			Params: middleware.Parameters{
+				{
+					Name: "id_album",
+					In:   "path",
+				}: params.IDAlbum,
+			},
+			Raw: r,
+		}
+
+		type (
+			Request  = *AddAuthorToAlbumReq
+			Params   = AddAuthorToAlbumParams
+			Response = *AddAuthorToAlbumOK
+		)
+		response, err = middleware.HookMiddleware[
+			Request,
+			Params,
+			Response,
+		](
+			m,
+			mreq,
+			unpackAddAuthorToAlbumParams,
+			func(ctx context.Context, request Request, params Params) (response Response, err error) {
+				response, err = s.h.AddAuthorToAlbum(ctx, request, params)
+				return response, err
+			},
+		)
+	} else {
+		response, err = s.h.AddAuthorToAlbum(ctx, request, params)
+	}
+	if err != nil {
+		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w, span); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
+			defer recordError("Internal", err)
+		}
+		return
+	}
+
+	if err := encodeAddAuthorToAlbumResponse(response, w, span); err != nil {
+		defer recordError("EncodeResponse", err)
+		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+		}
+		return
+	}
+}
+
 // handleCreateNewAlbumRequest handles createNewAlbum operation.
 //
 // POST /albums
@@ -588,12 +799,12 @@ func (s *Server) handleDeleteAlbumRequest(args [1]string, argsEscaped bool, w ht
 			mreq,
 			unpackDeleteAlbumParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.DeleteAlbum(ctx, params)
+				err = s.h.DeleteAlbum(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.DeleteAlbum(ctx, params)
+		err = s.h.DeleteAlbum(ctx, params)
 	}
 	if err != nil {
 		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
@@ -621,20 +832,20 @@ func (s *Server) handleDeleteAlbumRequest(args [1]string, argsEscaped bool, w ht
 	}
 }
 
-// handleDeleteAuthorToAlbumRequest handles deleteAuthorToAlbum operation.
+// handleDeleteAuthorFromAlbumRequest handles deleteAuthorFromAlbum operation.
 //
 // DELETE /albums/{id_album}/authors/{id_author}
-func (s *Server) handleDeleteAuthorToAlbumRequest(args [2]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleDeleteAuthorFromAlbumRequest(args [2]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("deleteAuthorToAlbum"),
+		otelogen.OperationID("deleteAuthorFromAlbum"),
 		semconv.HTTPRequestMethodKey.String("DELETE"),
 		semconv.HTTPRouteKey.String("/albums/{id_album}/authors/{id_author}"),
 	}
 
 	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), DeleteAuthorToAlbumOperation,
+	ctx, span := s.cfg.Tracer.Start(r.Context(), DeleteAuthorFromAlbumOperation,
 		trace.WithAttributes(otelAttrs...),
 		serverSpanKind,
 	)
@@ -689,15 +900,15 @@ func (s *Server) handleDeleteAuthorToAlbumRequest(args [2]string, argsEscaped bo
 		}
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: DeleteAuthorToAlbumOperation,
-			ID:   "deleteAuthorToAlbum",
+			Name: DeleteAuthorFromAlbumOperation,
+			ID:   "deleteAuthorFromAlbum",
 		}
 	)
 	{
 		type bitset = [1]uint8
 		var satisfied bitset
 		{
-			sctx, ok, err := s.securityBearerAuth(ctx, DeleteAuthorToAlbumOperation, r)
+			sctx, ok, err := s.securityBearerAuth(ctx, DeleteAuthorFromAlbumOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -739,7 +950,7 @@ func (s *Server) handleDeleteAuthorToAlbumRequest(args [2]string, argsEscaped bo
 			return
 		}
 	}
-	params, err := decodeDeleteAuthorToAlbumParams(args, argsEscaped, r)
+	params, err := decodeDeleteAuthorFromAlbumParams(args, argsEscaped, r)
 	if err != nil {
 		err = &ogenerrors.DecodeParamsError{
 			OperationContext: opErrContext,
@@ -752,13 +963,13 @@ func (s *Server) handleDeleteAuthorToAlbumRequest(args [2]string, argsEscaped bo
 
 	var rawBody []byte
 
-	var response *DeleteAuthorToAlbumNoContent
+	var response *DeleteAuthorFromAlbumNoContent
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    DeleteAuthorToAlbumOperation,
+			OperationName:    DeleteAuthorFromAlbumOperation,
 			OperationSummary: "",
-			OperationID:      "deleteAuthorToAlbum",
+			OperationID:      "deleteAuthorFromAlbum",
 			Body:             nil,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
@@ -776,8 +987,8 @@ func (s *Server) handleDeleteAuthorToAlbumRequest(args [2]string, argsEscaped bo
 
 		type (
 			Request  = struct{}
-			Params   = DeleteAuthorToAlbumParams
-			Response = *DeleteAuthorToAlbumNoContent
+			Params   = DeleteAuthorFromAlbumParams
+			Response = *DeleteAuthorFromAlbumNoContent
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -786,14 +997,14 @@ func (s *Server) handleDeleteAuthorToAlbumRequest(args [2]string, argsEscaped bo
 		](
 			m,
 			mreq,
-			unpackDeleteAuthorToAlbumParams,
+			unpackDeleteAuthorFromAlbumParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.DeleteAuthorToAlbum(ctx, params)
+				err = s.h.DeleteAuthorFromAlbum(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.DeleteAuthorToAlbum(ctx, params)
+		err = s.h.DeleteAuthorFromAlbum(ctx, params)
 	}
 	if err != nil {
 		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
@@ -812,207 +1023,7 @@ func (s *Server) handleDeleteAuthorToAlbumRequest(args [2]string, argsEscaped bo
 		return
 	}
 
-	if err := encodeDeleteAuthorToAlbumResponse(response, w, span); err != nil {
-		defer recordError("EncodeResponse", err)
-		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-		}
-		return
-	}
-}
-
-// handleDeleteAuthorToTrackRequest handles deleteAuthorToTrack operation.
-//
-// DELETE /tracks/{id_track}/authors/{id_author}
-func (s *Server) handleDeleteAuthorToTrackRequest(args [2]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
-	statusWriter := &codeRecorder{ResponseWriter: w}
-	w = statusWriter
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("deleteAuthorToTrack"),
-		semconv.HTTPRequestMethodKey.String("DELETE"),
-		semconv.HTTPRouteKey.String("/tracks/{id_track}/authors/{id_author}"),
-	}
-
-	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), DeleteAuthorToTrackOperation,
-		trace.WithAttributes(otelAttrs...),
-		serverSpanKind,
-	)
-	defer span.End()
-
-	// Add Labeler to context.
-	labeler := &Labeler{attrs: otelAttrs}
-	ctx = contextWithLabeler(ctx, labeler)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		elapsedDuration := time.Since(startTime)
-
-		attrSet := labeler.AttributeSet()
-		attrs := attrSet.ToSlice()
-		code := statusWriter.status
-		if code != 0 {
-			codeAttr := semconv.HTTPResponseStatusCode(code)
-			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
-		}
-		attrOpt := metric.WithAttributes(attrs...)
-
-		// Increment request counter.
-		s.requests.Add(ctx, 1, attrOpt)
-
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		s.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), attrOpt)
-	}()
-
-	var (
-		recordError = func(stage string, err error) {
-			span.RecordError(err)
-
-			// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#status
-			// Span Status MUST be left unset if HTTP status code was in the 1xx, 2xx or 3xx ranges,
-			// unless there was another error (e.g., network error receiving the response body; or 3xx codes with
-			// max redirects exceeded), in which case status MUST be set to Error.
-			code := statusWriter.status
-			if code < 100 || code >= 500 {
-				span.SetStatus(codes.Error, stage)
-			}
-
-			attrSet := labeler.AttributeSet()
-			attrs := attrSet.ToSlice()
-			if code != 0 {
-				attrs = append(attrs, semconv.HTTPResponseStatusCode(code))
-			}
-
-			s.errors.Add(ctx, 1, metric.WithAttributes(attrs...))
-		}
-		err          error
-		opErrContext = ogenerrors.OperationContext{
-			Name: DeleteAuthorToTrackOperation,
-			ID:   "deleteAuthorToTrack",
-		}
-	)
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			sctx, ok, err := s.securityBearerAuth(ctx, DeleteAuthorToTrackOperation, r)
-			if err != nil {
-				err = &ogenerrors.SecurityError{
-					OperationContext: opErrContext,
-					Security:         "BearerAuth",
-					Err:              err,
-				}
-				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w, span); encodeErr != nil {
-					defer recordError("Security:BearerAuth", err)
-				}
-				return
-			}
-			if ok {
-				satisfied[0] |= 1 << 0
-				ctx = sctx
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			err = &ogenerrors.SecurityError{
-				OperationContext: opErrContext,
-				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
-			}
-			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w, span); encodeErr != nil {
-				defer recordError("Security", err)
-			}
-			return
-		}
-	}
-	params, err := decodeDeleteAuthorToTrackParams(args, argsEscaped, r)
-	if err != nil {
-		err = &ogenerrors.DecodeParamsError{
-			OperationContext: opErrContext,
-			Err:              err,
-		}
-		defer recordError("DecodeParams", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
-		return
-	}
-
-	var rawBody []byte
-
-	var response *DeleteAuthorToTrackNoContent
-	if m := s.cfg.Middleware; m != nil {
-		mreq := middleware.Request{
-			Context:          ctx,
-			OperationName:    DeleteAuthorToTrackOperation,
-			OperationSummary: "",
-			OperationID:      "deleteAuthorToTrack",
-			Body:             nil,
-			RawBody:          rawBody,
-			Params: middleware.Parameters{
-				{
-					Name: "id_track",
-					In:   "path",
-				}: params.IDTrack,
-				{
-					Name: "id_author",
-					In:   "path",
-				}: params.IDAuthor,
-			},
-			Raw: r,
-		}
-
-		type (
-			Request  = struct{}
-			Params   = DeleteAuthorToTrackParams
-			Response = *DeleteAuthorToTrackNoContent
-		)
-		response, err = middleware.HookMiddleware[
-			Request,
-			Params,
-			Response,
-		](
-			m,
-			mreq,
-			unpackDeleteAuthorToTrackParams,
-			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.DeleteAuthorToTrack(ctx, params)
-				return response, err
-			},
-		)
-	} else {
-		response, err = s.h.DeleteAuthorToTrack(ctx, params)
-	}
-	if err != nil {
-		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
-			if err := encodeErrorResponse(errRes, w, span); err != nil {
-				defer recordError("Internal", err)
-			}
-			return
-		}
-		if errors.Is(err, ht.ErrNotImplemented) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-			return
-		}
-		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
-			defer recordError("Internal", err)
-		}
-		return
-	}
-
-	if err := encodeDeleteAuthorToTrackResponse(response, w, span); err != nil {
+	if err := encodeDeleteAuthorFromAlbumResponse(response, w, span); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
@@ -1184,12 +1195,12 @@ func (s *Server) handleDeleteTrackRequest(args [1]string, argsEscaped bool, w ht
 			mreq,
 			unpackDeleteTrackParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.DeleteTrack(ctx, params)
+				err = s.h.DeleteTrack(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.DeleteTrack(ctx, params)
+		err = s.h.DeleteTrack(ctx, params)
 	}
 	if err != nil {
 		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
@@ -3524,20 +3535,20 @@ func (s *Server) handleGetTracksFromAuthorRequest(args [1]string, argsEscaped bo
 	}
 }
 
-// handlePushNewAuthorFromAlbumRequest handles pushNewAuthorFromAlbum operation.
+// handleRefreshRequest handles refresh operation.
 //
-// PATCH /albums/{id_album}/authors
-func (s *Server) handlePushNewAuthorFromAlbumRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// POST /refresh
+func (s *Server) handleRefreshRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("pushNewAuthorFromAlbum"),
-		semconv.HTTPRequestMethodKey.String("PATCH"),
-		semconv.HTTPRouteKey.String("/albums/{id_album}/authors"),
+		otelogen.OperationID("refresh"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.HTTPRouteKey.String("/refresh"),
 	}
 
 	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), PushNewAuthorFromAlbumOperation,
+	ctx, span := s.cfg.Tracer.Start(r.Context(), RefreshOperation,
 		trace.WithAttributes(otelAttrs...),
 		serverSpanKind,
 	)
@@ -3592,69 +3603,13 @@ func (s *Server) handlePushNewAuthorFromAlbumRequest(args [1]string, argsEscaped
 		}
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: PushNewAuthorFromAlbumOperation,
-			ID:   "pushNewAuthorFromAlbum",
+			Name: RefreshOperation,
+			ID:   "refresh",
 		}
 	)
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			sctx, ok, err := s.securityBearerAuth(ctx, PushNewAuthorFromAlbumOperation, r)
-			if err != nil {
-				err = &ogenerrors.SecurityError{
-					OperationContext: opErrContext,
-					Security:         "BearerAuth",
-					Err:              err,
-				}
-				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w, span); encodeErr != nil {
-					defer recordError("Security:BearerAuth", err)
-				}
-				return
-			}
-			if ok {
-				satisfied[0] |= 1 << 0
-				ctx = sctx
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			err = &ogenerrors.SecurityError{
-				OperationContext: opErrContext,
-				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
-			}
-			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w, span); encodeErr != nil {
-				defer recordError("Security", err)
-			}
-			return
-		}
-	}
-	params, err := decodePushNewAuthorFromAlbumParams(args, argsEscaped, r)
-	if err != nil {
-		err = &ogenerrors.DecodeParamsError{
-			OperationContext: opErrContext,
-			Err:              err,
-		}
-		defer recordError("DecodeParams", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
-		return
-	}
 
 	var rawBody []byte
-	request, rawBody, close, err := s.decodePushNewAuthorFromAlbumRequest(r)
+	request, rawBody, close, err := s.decodeRefreshRequest(r)
 	if err != nil {
 		err = &ogenerrors.DecodeRequestError{
 			OperationContext: opErrContext,
@@ -3670,28 +3625,23 @@ func (s *Server) handlePushNewAuthorFromAlbumRequest(args [1]string, argsEscaped
 		}
 	}()
 
-	var response *PushNewAuthorFromAlbumOK
+	var response *TokenPair
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    PushNewAuthorFromAlbumOperation,
+			OperationName:    RefreshOperation,
 			OperationSummary: "",
-			OperationID:      "pushNewAuthorFromAlbum",
+			OperationID:      "refresh",
 			Body:             request,
 			RawBody:          rawBody,
-			Params: middleware.Parameters{
-				{
-					Name: "id_album",
-					In:   "path",
-				}: params.IDAlbum,
-			},
-			Raw: r,
+			Params:           middleware.Parameters{},
+			Raw:              r,
 		}
 
 		type (
-			Request  = *PushNewAuthorFromAlbumReq
-			Params   = PushNewAuthorFromAlbumParams
-			Response = *PushNewAuthorFromAlbumOK
+			Request  = *RefreshReq
+			Params   = struct{}
+			Response = *TokenPair
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -3700,14 +3650,14 @@ func (s *Server) handlePushNewAuthorFromAlbumRequest(args [1]string, argsEscaped
 		](
 			m,
 			mreq,
-			unpackPushNewAuthorFromAlbumParams,
+			nil,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.PushNewAuthorFromAlbum(ctx, request, params)
+				response, err = s.h.Refresh(ctx, request)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.PushNewAuthorFromAlbum(ctx, request, params)
+		response, err = s.h.Refresh(ctx, request)
 	}
 	if err != nil {
 		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
@@ -3726,218 +3676,7 @@ func (s *Server) handlePushNewAuthorFromAlbumRequest(args [1]string, argsEscaped
 		return
 	}
 
-	if err := encodePushNewAuthorFromAlbumResponse(response, w, span); err != nil {
-		defer recordError("EncodeResponse", err)
-		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-		}
-		return
-	}
-}
-
-// handlePushNewAuthorFromTrackRequest handles pushNewAuthorFromTrack operation.
-//
-// PATCH /tracks/{id_track}/authors
-func (s *Server) handlePushNewAuthorFromTrackRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
-	statusWriter := &codeRecorder{ResponseWriter: w}
-	w = statusWriter
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("pushNewAuthorFromTrack"),
-		semconv.HTTPRequestMethodKey.String("PATCH"),
-		semconv.HTTPRouteKey.String("/tracks/{id_track}/authors"),
-	}
-
-	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), PushNewAuthorFromTrackOperation,
-		trace.WithAttributes(otelAttrs...),
-		serverSpanKind,
-	)
-	defer span.End()
-
-	// Add Labeler to context.
-	labeler := &Labeler{attrs: otelAttrs}
-	ctx = contextWithLabeler(ctx, labeler)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		elapsedDuration := time.Since(startTime)
-
-		attrSet := labeler.AttributeSet()
-		attrs := attrSet.ToSlice()
-		code := statusWriter.status
-		if code != 0 {
-			codeAttr := semconv.HTTPResponseStatusCode(code)
-			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
-		}
-		attrOpt := metric.WithAttributes(attrs...)
-
-		// Increment request counter.
-		s.requests.Add(ctx, 1, attrOpt)
-
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		s.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), attrOpt)
-	}()
-
-	var (
-		recordError = func(stage string, err error) {
-			span.RecordError(err)
-
-			// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#status
-			// Span Status MUST be left unset if HTTP status code was in the 1xx, 2xx or 3xx ranges,
-			// unless there was another error (e.g., network error receiving the response body; or 3xx codes with
-			// max redirects exceeded), in which case status MUST be set to Error.
-			code := statusWriter.status
-			if code < 100 || code >= 500 {
-				span.SetStatus(codes.Error, stage)
-			}
-
-			attrSet := labeler.AttributeSet()
-			attrs := attrSet.ToSlice()
-			if code != 0 {
-				attrs = append(attrs, semconv.HTTPResponseStatusCode(code))
-			}
-
-			s.errors.Add(ctx, 1, metric.WithAttributes(attrs...))
-		}
-		err          error
-		opErrContext = ogenerrors.OperationContext{
-			Name: PushNewAuthorFromTrackOperation,
-			ID:   "pushNewAuthorFromTrack",
-		}
-	)
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			sctx, ok, err := s.securityBearerAuth(ctx, PushNewAuthorFromTrackOperation, r)
-			if err != nil {
-				err = &ogenerrors.SecurityError{
-					OperationContext: opErrContext,
-					Security:         "BearerAuth",
-					Err:              err,
-				}
-				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w, span); encodeErr != nil {
-					defer recordError("Security:BearerAuth", err)
-				}
-				return
-			}
-			if ok {
-				satisfied[0] |= 1 << 0
-				ctx = sctx
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			err = &ogenerrors.SecurityError{
-				OperationContext: opErrContext,
-				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
-			}
-			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w, span); encodeErr != nil {
-				defer recordError("Security", err)
-			}
-			return
-		}
-	}
-	params, err := decodePushNewAuthorFromTrackParams(args, argsEscaped, r)
-	if err != nil {
-		err = &ogenerrors.DecodeParamsError{
-			OperationContext: opErrContext,
-			Err:              err,
-		}
-		defer recordError("DecodeParams", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
-		return
-	}
-
-	var rawBody []byte
-	request, rawBody, close, err := s.decodePushNewAuthorFromTrackRequest(r)
-	if err != nil {
-		err = &ogenerrors.DecodeRequestError{
-			OperationContext: opErrContext,
-			Err:              err,
-		}
-		defer recordError("DecodeRequest", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
-		return
-	}
-	defer func() {
-		if err := close(); err != nil {
-			recordError("CloseRequest", err)
-		}
-	}()
-
-	var response *PushNewAuthorFromTrackOK
-	if m := s.cfg.Middleware; m != nil {
-		mreq := middleware.Request{
-			Context:          ctx,
-			OperationName:    PushNewAuthorFromTrackOperation,
-			OperationSummary: "",
-			OperationID:      "pushNewAuthorFromTrack",
-			Body:             request,
-			RawBody:          rawBody,
-			Params: middleware.Parameters{
-				{
-					Name: "id_track",
-					In:   "path",
-				}: params.IDTrack,
-			},
-			Raw: r,
-		}
-
-		type (
-			Request  = *PushNewAuthorFromTrackReq
-			Params   = PushNewAuthorFromTrackParams
-			Response = *PushNewAuthorFromTrackOK
-		)
-		response, err = middleware.HookMiddleware[
-			Request,
-			Params,
-			Response,
-		](
-			m,
-			mreq,
-			unpackPushNewAuthorFromTrackParams,
-			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.PushNewAuthorFromTrack(ctx, request, params)
-				return response, err
-			},
-		)
-	} else {
-		response, err = s.h.PushNewAuthorFromTrack(ctx, request, params)
-	}
-	if err != nil {
-		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
-			if err := encodeErrorResponse(errRes, w, span); err != nil {
-				defer recordError("Internal", err)
-			}
-			return
-		}
-		if errors.Is(err, ht.ErrNotImplemented) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-			return
-		}
-		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
-			defer recordError("Internal", err)
-		}
-		return
-	}
-
-	if err := encodePushNewAuthorFromTrackResponse(response, w, span); err != nil {
+	if err := encodeRefreshResponse(response, w, span); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
@@ -4036,7 +3775,7 @@ func (s *Server) handleSigninRequest(args [0]string, argsEscaped bool, w http.Re
 		}
 	}()
 
-	var response *SigninOK
+	var response *TokenPair
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -4052,7 +3791,7 @@ func (s *Server) handleSigninRequest(args [0]string, argsEscaped bool, w http.Re
 		type (
 			Request  = *SigninReq
 			Params   = struct{}
-			Response = *SigninOK
+			Response = *TokenPair
 		)
 		response, err = middleware.HookMiddleware[
 			Request,

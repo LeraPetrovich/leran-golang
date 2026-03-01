@@ -50,7 +50,7 @@ func (s *storage) GetTrackById(ctx context.Context, trackId int) (*core.Track, e
 	return &track, nil
 }
 
-func (s *storage) GetTracksInAlbum(ctx context.Context, albumId int) (*core.TrackList, error) {
+func (s *storage) GetTracksByAlbum(ctx context.Context, albumId int) (*core.TrackList, error) {
 	contextTime, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
@@ -77,71 +77,7 @@ func (s *storage) GetTracksInAlbum(ctx context.Context, albumId int) (*core.Trac
 	return &core.TrackList{Items: tracks}, nil
 }
 
-//template with Goroutines
-// func (s *storage) GetAllTrackFromAuthor(ctx context.Context, authorId int) (*core.TrackList, error) {
-// 	contextTime, cancel := context.WithTimeout(ctx, fastQueryTimeout)
-// 	defer cancel()
-// 	var wg sync.WaitGroup
-
-// 	var albumsIds []int
-// 	rows, err := s.postgres.Query(contextTime, `
-// 	SELECT album_id
-// 	FROM author_album
-// 	WHERE author_id = $1
-// 	`, authorId)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
-
-// 	for rows.Next() {
-// 		var id int
-// 		err := rows.Scan(&id)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		albumsIds = append(albumsIds, id)
-// 	}
-
-// 	var tracks []*core.Track
-
-// 	wg.Add(len(albumsIds))
-// 	for _, albumId := range albumsIds {
-// 		go func(albumId int) {
-// 			defer wg.Done()
-
-// 			trackRows, err := s.postgres.Query(contextTime, `
-// 			SELECT id, fk_id_album, name
-// 			FROM tracks
-// 			WHERE fk_id_album = $1
-// 			`, albumId)
-// 			if err != nil {
-// 				return
-// 			}
-// 			defer trackRows.Close()
-
-// 			var albumTracks []*core.Track
-// 			for trackRows.Next() {
-// 				track := &core.Track{}
-// 				err := trackRows.Scan(&track.Id, &track.IdAlbum, &track.Name)
-// 				if err != nil {
-// 					return
-// 				}
-// 				albumTracks = append(albumTracks, track)
-// 			}
-
-// 			mu.Lock()
-// 			tracks = append(tracks, albumTracks...)
-// 			mu.Unlock()
-// 		}(albumId)
-// 	}
-
-// 	wg.Wait()
-// 	return &core.TrackList{Items: tracks}, nil
-// }
-
-// template with join
-func (s *storage) GetAllTrackFromAuthor(ctx context.Context, authorId int) (*core.TrackList, error) {
+func (s *storage) GetAllTracksByAuthor(ctx context.Context, authorId int) (*core.TrackList, error) {
 	contextTime, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
@@ -179,7 +115,7 @@ func (s *storage) CreateNewTrack(ctx context.Context, track *core.Track, authorI
 	INSERT INTO tracks (name, fk_id_album)
 	VALUES ($1, $2)
 	RETURNING id
-	`, track.Name, authorId).Scan(&id)
+	`, track.Name, track.IdAlbum).Scan(&id)
 
 	if err != nil {
 		return nil, err
@@ -215,16 +151,6 @@ func (s *storage) RemoveTrack(ctx context.Context, idTrack int) error {
 	contextTime, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
-	//delete track from author_track
-	_, errAuthorTrack := s.postgres.Exec(contextTime, `
-	DELETE FROM author_track
-	WHERE track_id = $1
-	`, idTrack)
-
-	if errAuthorTrack != nil {
-		return errAuthorTrack
-	}
-
 	//delete track from track table
 	_, err := s.postgres.Exec(contextTime, `
 	DELETE FROM tracks
@@ -234,5 +160,4 @@ func (s *storage) RemoveTrack(ctx context.Context, idTrack int) error {
 		return err
 	}
 	return nil
-
 }

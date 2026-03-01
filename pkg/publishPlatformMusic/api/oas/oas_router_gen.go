@@ -159,7 +159,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 											args[0],
 										}, elemIsEscaped, w, r)
 									case "PATCH":
-										s.handlePushNewAuthorFromAlbumRequest([1]string{
+										s.handleAddAuthorToAlbumRequest([1]string{
 											args[0],
 										}, elemIsEscaped, w, r)
 									default:
@@ -190,7 +190,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 										// Leaf node.
 										switch r.Method {
 										case "DELETE":
-											s.handleDeleteAuthorToAlbumRequest([2]string{
+											s.handleDeleteAuthorFromAlbumRequest([2]string{
 												args[0],
 												args[1],
 											}, elemIsEscaped, w, r)
@@ -344,6 +344,26 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 				}
 
+			case 'r': // Prefix: "refresh"
+
+				if l := len("refresh"); len(elem) >= l && elem[0:l] == "refresh" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					// Leaf node.
+					switch r.Method {
+					case "POST":
+						s.handleRefreshRequest([0]string{}, elemIsEscaped, w, r)
+					default:
+						s.notAllowed(w, r, "POST")
+					}
+
+					return
+				}
+
 			case 's': // Prefix: "signin"
 
 				if l := len("signin"); len(elem) >= l && elem[0:l] == "signin" {
@@ -466,54 +486,17 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							}
 
 							if len(elem) == 0 {
+								// Leaf node.
 								switch r.Method {
 								case "GET":
 									s.handleGetAuthorsFromTrackRequest([1]string{
 										args[0],
 									}, elemIsEscaped, w, r)
-								case "PATCH":
-									s.handlePushNewAuthorFromTrackRequest([1]string{
-										args[0],
-									}, elemIsEscaped, w, r)
 								default:
-									s.notAllowed(w, r, "GET,PATCH")
+									s.notAllowed(w, r, "GET")
 								}
 
 								return
-							}
-							switch elem[0] {
-							case '/': // Prefix: "/"
-
-								if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
-									elem = elem[l:]
-								} else {
-									break
-								}
-
-								// Param: "id_author"
-								// Leaf parameter, slashes are prohibited
-								idx := strings.IndexByte(elem, '/')
-								if idx >= 0 {
-									break
-								}
-								args[1] = elem
-								elem = ""
-
-								if len(elem) == 0 {
-									// Leaf node.
-									switch r.Method {
-									case "DELETE":
-										s.handleDeleteAuthorToTrackRequest([2]string{
-											args[0],
-											args[1],
-										}, elemIsEscaped, w, r)
-									default:
-										s.notAllowed(w, r, "DELETE")
-									}
-
-									return
-								}
-
 							}
 
 						}
@@ -750,9 +733,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 										r.count = 1
 										return r, true
 									case "PATCH":
-										r.name = PushNewAuthorFromAlbumOperation
+										r.name = AddAuthorToAlbumOperation
 										r.summary = ""
-										r.operationID = "pushNewAuthorFromAlbum"
+										r.operationID = "addAuthorToAlbum"
 										r.operationGroup = ""
 										r.pathPattern = "/albums/{id_album}/authors"
 										r.args = args
@@ -784,9 +767,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 										// Leaf node.
 										switch method {
 										case "DELETE":
-											r.name = DeleteAuthorToAlbumOperation
+											r.name = DeleteAuthorFromAlbumOperation
 											r.summary = ""
-											r.operationID = "deleteAuthorToAlbum"
+											r.operationID = "deleteAuthorFromAlbum"
 											r.operationGroup = ""
 											r.pathPattern = "/albums/{id_album}/authors/{id_author}"
 											r.args = args
@@ -957,6 +940,31 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 
 				}
 
+			case 'r': // Prefix: "refresh"
+
+				if l := len("refresh"); len(elem) >= l && elem[0:l] == "refresh" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					// Leaf node.
+					switch method {
+					case "POST":
+						r.name = RefreshOperation
+						r.summary = ""
+						r.operationID = "refresh"
+						r.operationGroup = ""
+						r.pathPattern = "/refresh"
+						r.args = args
+						r.count = 0
+						return r, true
+					default:
+						return
+					}
+				}
+
 			case 's': // Prefix: "signin"
 
 				if l := len("signin"); len(elem) >= l && elem[0:l] == "signin" {
@@ -1112,6 +1120,7 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 							}
 
 							if len(elem) == 0 {
+								// Leaf node.
 								switch method {
 								case "GET":
 									r.name = GetAuthorsFromTrackOperation
@@ -1122,54 +1131,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 									r.args = args
 									r.count = 1
 									return r, true
-								case "PATCH":
-									r.name = PushNewAuthorFromTrackOperation
-									r.summary = ""
-									r.operationID = "pushNewAuthorFromTrack"
-									r.operationGroup = ""
-									r.pathPattern = "/tracks/{id_track}/authors"
-									r.args = args
-									r.count = 1
-									return r, true
 								default:
 									return
 								}
-							}
-							switch elem[0] {
-							case '/': // Prefix: "/"
-
-								if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
-									elem = elem[l:]
-								} else {
-									break
-								}
-
-								// Param: "id_author"
-								// Leaf parameter, slashes are prohibited
-								idx := strings.IndexByte(elem, '/')
-								if idx >= 0 {
-									break
-								}
-								args[1] = elem
-								elem = ""
-
-								if len(elem) == 0 {
-									// Leaf node.
-									switch method {
-									case "DELETE":
-										r.name = DeleteAuthorToTrackOperation
-										r.summary = ""
-										r.operationID = "deleteAuthorToTrack"
-										r.operationGroup = ""
-										r.pathPattern = "/tracks/{id_track}/authors/{id_author}"
-										r.args = args
-										r.count = 2
-										return r, true
-									default:
-										return
-									}
-								}
-
 							}
 
 						}

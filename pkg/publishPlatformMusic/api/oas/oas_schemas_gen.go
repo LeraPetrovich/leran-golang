@@ -10,6 +10,34 @@ func (s *ErrorStatusCode) Error() string {
 	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
 }
 
+type AddAuthorToAlbumOK struct {
+	Success OptBool `json:"success"`
+}
+
+// GetSuccess returns the value of Success.
+func (s *AddAuthorToAlbumOK) GetSuccess() OptBool {
+	return s.Success
+}
+
+// SetSuccess sets the value of Success.
+func (s *AddAuthorToAlbumOK) SetSuccess(val OptBool) {
+	s.Success = val
+}
+
+type AddAuthorToAlbumReq struct {
+	IDAuthor int `json:"id_author"`
+}
+
+// GetIDAuthor returns the value of IDAuthor.
+func (s *AddAuthorToAlbumReq) GetIDAuthor() int {
+	return s.IDAuthor
+}
+
+// SetIDAuthor sets the value of IDAuthor.
+func (s *AddAuthorToAlbumReq) SetIDAuthor(val int) {
+	s.IDAuthor = val
+}
+
 // Ref: #/components/schemas/Album
 type Album struct {
 	ID          int    `json:"id"`
@@ -170,61 +198,14 @@ func (s *CreateNewTrackReq) SetIDAuthor(val int) {
 	s.IDAuthor = val
 }
 
-type DeleteAlbumNoContent struct {
-	Success OptBool `json:"success"`
-}
+// DeleteAlbumNoContent is response for DeleteAlbum operation.
+type DeleteAlbumNoContent struct{}
 
-// GetSuccess returns the value of Success.
-func (s *DeleteAlbumNoContent) GetSuccess() OptBool {
-	return s.Success
-}
+// DeleteAuthorFromAlbumNoContent is response for DeleteAuthorFromAlbum operation.
+type DeleteAuthorFromAlbumNoContent struct{}
 
-// SetSuccess sets the value of Success.
-func (s *DeleteAlbumNoContent) SetSuccess(val OptBool) {
-	s.Success = val
-}
-
-type DeleteAuthorToAlbumNoContent struct {
-	Success OptBool `json:"success"`
-}
-
-// GetSuccess returns the value of Success.
-func (s *DeleteAuthorToAlbumNoContent) GetSuccess() OptBool {
-	return s.Success
-}
-
-// SetSuccess sets the value of Success.
-func (s *DeleteAuthorToAlbumNoContent) SetSuccess(val OptBool) {
-	s.Success = val
-}
-
-type DeleteAuthorToTrackNoContent struct {
-	Success OptBool `json:"success"`
-}
-
-// GetSuccess returns the value of Success.
-func (s *DeleteAuthorToTrackNoContent) GetSuccess() OptBool {
-	return s.Success
-}
-
-// SetSuccess sets the value of Success.
-func (s *DeleteAuthorToTrackNoContent) SetSuccess(val OptBool) {
-	s.Success = val
-}
-
-type DeleteTrackNoContent struct {
-	Success OptBool `json:"success"`
-}
-
-// GetSuccess returns the value of Success.
-func (s *DeleteTrackNoContent) GetSuccess() OptBool {
-	return s.Success
-}
-
-// SetSuccess sets the value of Success.
-func (s *DeleteTrackNoContent) SetSuccess(val OptBool) {
-	s.Success = val
-}
+// DeleteTrackNoContent is response for DeleteTrack operation.
+type DeleteTrackNoContent struct{}
 
 type Error struct {
 	Error             string    `json:"error"`
@@ -380,74 +361,18 @@ func (o OptString) Or(d string) string {
 	return d
 }
 
-type PushNewAuthorFromAlbumOK struct {
-	Success OptBool `json:"success"`
+type RefreshReq struct {
+	RefreshToken string `json:"refresh_token"`
 }
 
-// GetSuccess returns the value of Success.
-func (s *PushNewAuthorFromAlbumOK) GetSuccess() OptBool {
-	return s.Success
+// GetRefreshToken returns the value of RefreshToken.
+func (s *RefreshReq) GetRefreshToken() string {
+	return s.RefreshToken
 }
 
-// SetSuccess sets the value of Success.
-func (s *PushNewAuthorFromAlbumOK) SetSuccess(val OptBool) {
-	s.Success = val
-}
-
-type PushNewAuthorFromAlbumReq struct {
-	IDAuthor int `json:"id_author"`
-}
-
-// GetIDAuthor returns the value of IDAuthor.
-func (s *PushNewAuthorFromAlbumReq) GetIDAuthor() int {
-	return s.IDAuthor
-}
-
-// SetIDAuthor sets the value of IDAuthor.
-func (s *PushNewAuthorFromAlbumReq) SetIDAuthor(val int) {
-	s.IDAuthor = val
-}
-
-type PushNewAuthorFromTrackOK struct {
-	Success OptBool `json:"success"`
-}
-
-// GetSuccess returns the value of Success.
-func (s *PushNewAuthorFromTrackOK) GetSuccess() OptBool {
-	return s.Success
-}
-
-// SetSuccess sets the value of Success.
-func (s *PushNewAuthorFromTrackOK) SetSuccess(val OptBool) {
-	s.Success = val
-}
-
-type PushNewAuthorFromTrackReq struct {
-	IDAuthor int `json:"id_author"`
-}
-
-// GetIDAuthor returns the value of IDAuthor.
-func (s *PushNewAuthorFromTrackReq) GetIDAuthor() int {
-	return s.IDAuthor
-}
-
-// SetIDAuthor sets the value of IDAuthor.
-func (s *PushNewAuthorFromTrackReq) SetIDAuthor(val int) {
-	s.IDAuthor = val
-}
-
-type SigninOK struct {
-	Token string `json:"token"`
-}
-
-// GetToken returns the value of Token.
-func (s *SigninOK) GetToken() string {
-	return s.Token
-}
-
-// SetToken sets the value of Token.
-func (s *SigninOK) SetToken(val string) {
-	s.Token = val
+// SetRefreshToken sets the value of RefreshToken.
+func (s *RefreshReq) SetRefreshToken(val string) {
+	s.RefreshToken = val
 }
 
 type SigninReq struct {
@@ -473,6 +398,32 @@ func (s *SigninReq) SetUsername(val string) {
 // SetPassword sets the value of Password.
 func (s *SigninReq) SetPassword(val string) {
 	s.Password = val
+}
+
+// Ref: #/components/schemas/TokenPair
+type TokenPair struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+// GetAccessToken returns the value of AccessToken.
+func (s *TokenPair) GetAccessToken() string {
+	return s.AccessToken
+}
+
+// GetRefreshToken returns the value of RefreshToken.
+func (s *TokenPair) GetRefreshToken() string {
+	return s.RefreshToken
+}
+
+// SetAccessToken sets the value of AccessToken.
+func (s *TokenPair) SetAccessToken(val string) {
+	s.AccessToken = val
+}
+
+// SetRefreshToken sets the value of RefreshToken.
+func (s *TokenPair) SetRefreshToken(val string) {
+	s.RefreshToken = val
 }
 
 // Ref: #/components/schemas/Track

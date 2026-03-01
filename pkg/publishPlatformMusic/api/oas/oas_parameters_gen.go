@@ -14,6 +14,71 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
+// AddAuthorToAlbumParams is parameters of addAuthorToAlbum operation.
+type AddAuthorToAlbumParams struct {
+	IDAlbum int
+}
+
+func unpackAddAuthorToAlbumParams(packed middleware.Parameters) (params AddAuthorToAlbumParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id_album",
+			In:   "path",
+		}
+		params.IDAlbum = packed[key].(int)
+	}
+	return params
+}
+
+func decodeAddAuthorToAlbumParams(args [1]string, argsEscaped bool, r *http.Request) (params AddAuthorToAlbumParams, _ error) {
+	// Decode path: id_album.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id_album",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToInt(val)
+				if err != nil {
+					return err
+				}
+
+				params.IDAlbum = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id_album",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // DeleteAlbumParams is parameters of deleteAlbum operation.
 type DeleteAlbumParams struct {
 	IDAlbum int
@@ -79,13 +144,13 @@ func decodeDeleteAlbumParams(args [1]string, argsEscaped bool, r *http.Request) 
 	return params, nil
 }
 
-// DeleteAuthorToAlbumParams is parameters of deleteAuthorToAlbum operation.
-type DeleteAuthorToAlbumParams struct {
+// DeleteAuthorFromAlbumParams is parameters of deleteAuthorFromAlbum operation.
+type DeleteAuthorFromAlbumParams struct {
 	IDAlbum  int
 	IDAuthor int
 }
 
-func unpackDeleteAuthorToAlbumParams(packed middleware.Parameters) (params DeleteAuthorToAlbumParams) {
+func unpackDeleteAuthorFromAlbumParams(packed middleware.Parameters) (params DeleteAuthorFromAlbumParams) {
 	{
 		key := middleware.ParameterKey{
 			Name: "id_album",
@@ -103,7 +168,7 @@ func unpackDeleteAuthorToAlbumParams(packed middleware.Parameters) (params Delet
 	return params
 }
 
-func decodeDeleteAuthorToAlbumParams(args [2]string, argsEscaped bool, r *http.Request) (params DeleteAuthorToAlbumParams, _ error) {
+func decodeDeleteAuthorFromAlbumParams(args [2]string, argsEscaped bool, r *http.Request) (params DeleteAuthorFromAlbumParams, _ error) {
 	// Decode path: id_album.
 	if err := func() error {
 		param := args[0]
@@ -145,124 +210,6 @@ func decodeDeleteAuthorToAlbumParams(args [2]string, argsEscaped bool, r *http.R
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id_album",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	// Decode path: id_author.
-	if err := func() error {
-		param := args[1]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[1])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id_author",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToInt(val)
-				if err != nil {
-					return err
-				}
-
-				params.IDAuthor = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "id_author",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
-// DeleteAuthorToTrackParams is parameters of deleteAuthorToTrack operation.
-type DeleteAuthorToTrackParams struct {
-	IDTrack  int
-	IDAuthor int
-}
-
-func unpackDeleteAuthorToTrackParams(packed middleware.Parameters) (params DeleteAuthorToTrackParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "id_track",
-			In:   "path",
-		}
-		params.IDTrack = packed[key].(int)
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "id_author",
-			In:   "path",
-		}
-		params.IDAuthor = packed[key].(int)
-	}
-	return params
-}
-
-func decodeDeleteAuthorToTrackParams(args [2]string, argsEscaped bool, r *http.Request) (params DeleteAuthorToTrackParams, _ error) {
-	// Decode path: id_track.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id_track",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToInt(val)
-				if err != nil {
-					return err
-				}
-
-				params.IDTrack = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "id_track",
 			In:   "path",
 			Err:  err,
 		}
@@ -958,136 +905,6 @@ func decodeGetTracksFromAuthorParams(args [1]string, argsEscaped bool, r *http.R
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id_author",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
-// PushNewAuthorFromAlbumParams is parameters of pushNewAuthorFromAlbum operation.
-type PushNewAuthorFromAlbumParams struct {
-	IDAlbum int
-}
-
-func unpackPushNewAuthorFromAlbumParams(packed middleware.Parameters) (params PushNewAuthorFromAlbumParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "id_album",
-			In:   "path",
-		}
-		params.IDAlbum = packed[key].(int)
-	}
-	return params
-}
-
-func decodePushNewAuthorFromAlbumParams(args [1]string, argsEscaped bool, r *http.Request) (params PushNewAuthorFromAlbumParams, _ error) {
-	// Decode path: id_album.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id_album",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToInt(val)
-				if err != nil {
-					return err
-				}
-
-				params.IDAlbum = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "id_album",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
-// PushNewAuthorFromTrackParams is parameters of pushNewAuthorFromTrack operation.
-type PushNewAuthorFromTrackParams struct {
-	IDTrack int
-}
-
-func unpackPushNewAuthorFromTrackParams(packed middleware.Parameters) (params PushNewAuthorFromTrackParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "id_track",
-			In:   "path",
-		}
-		params.IDTrack = packed[key].(int)
-	}
-	return params
-}
-
-func decodePushNewAuthorFromTrackParams(args [1]string, argsEscaped bool, r *http.Request) (params PushNewAuthorFromTrackParams, _ error) {
-	// Decode path: id_track.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id_track",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToInt(val)
-				if err != nil {
-					return err
-				}
-
-				params.IDTrack = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "id_track",
 			In:   "path",
 			Err:  err,
 		}

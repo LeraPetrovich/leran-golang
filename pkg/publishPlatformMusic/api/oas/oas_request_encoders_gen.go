@@ -10,6 +10,20 @@ import (
 	ht "github.com/ogen-go/ogen/http"
 )
 
+func encodeAddAuthorToAlbumRequest(
+	req *AddAuthorToAlbumReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeCreateNewAlbumRequest(
 	req *CreateNewAlbumReq,
 	r *http.Request,
@@ -38,22 +52,8 @@ func encodeCreateNewTrackRequest(
 	return nil
 }
 
-func encodePushNewAuthorFromAlbumRequest(
-	req *PushNewAuthorFromAlbumReq,
-	r *http.Request,
-) error {
-	const contentType = "application/json"
-	e := new(jx.Encoder)
-	{
-		req.Encode(e)
-	}
-	encoded := e.Bytes()
-	ht.SetBody(r, bytes.NewReader(encoded), contentType)
-	return nil
-}
-
-func encodePushNewAuthorFromTrackRequest(
-	req *PushNewAuthorFromTrackReq,
+func encodeRefreshRequest(
+	req *RefreshReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

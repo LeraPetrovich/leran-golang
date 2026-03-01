@@ -28,6 +28,10 @@ func trimTrailingSlashes(u *url.URL) {
 
 // Invoker invokes operations described by OpenAPI v3 specification.
 type Invoker interface {
+	// AddAuthorToAlbum invokes addAuthorToAlbum operation.
+	//
+	// PATCH /albums/{id_album}/authors
+	AddAuthorToAlbum(ctx context.Context, request *AddAuthorToAlbumReq, params AddAuthorToAlbumParams) (*AddAuthorToAlbumOK, error)
 	// CreateNewAlbum invokes createNewAlbum operation.
 	//
 	// POST /albums
@@ -39,19 +43,15 @@ type Invoker interface {
 	// DeleteAlbum invokes deleteAlbum operation.
 	//
 	// DELETE /albums/{id_album}
-	DeleteAlbum(ctx context.Context, params DeleteAlbumParams) (*DeleteAlbumNoContent, error)
-	// DeleteAuthorToAlbum invokes deleteAuthorToAlbum operation.
+	DeleteAlbum(ctx context.Context, params DeleteAlbumParams) error
+	// DeleteAuthorFromAlbum invokes deleteAuthorFromAlbum operation.
 	//
 	// DELETE /albums/{id_album}/authors/{id_author}
-	DeleteAuthorToAlbum(ctx context.Context, params DeleteAuthorToAlbumParams) (*DeleteAuthorToAlbumNoContent, error)
-	// DeleteAuthorToTrack invokes deleteAuthorToTrack operation.
-	//
-	// DELETE /tracks/{id_track}/authors/{id_author}
-	DeleteAuthorToTrack(ctx context.Context, params DeleteAuthorToTrackParams) (*DeleteAuthorToTrackNoContent, error)
+	DeleteAuthorFromAlbum(ctx context.Context, params DeleteAuthorFromAlbumParams) error
 	// DeleteTrack invokes deleteTrack operation.
 	//
 	// DELETE /tracks/{id_track}
-	DeleteTrack(ctx context.Context, params DeleteTrackParams) (*DeleteTrackNoContent, error)
+	DeleteTrack(ctx context.Context, params DeleteTrackParams) error
 	// GetAlbumFromId invokes getAlbumFromId operation.
 	//
 	// GET /albums/{id_album}
@@ -100,18 +100,14 @@ type Invoker interface {
 	//
 	// GET /authors/{id_author}/tracks
 	GetTracksFromAuthor(ctx context.Context, params GetTracksFromAuthorParams) ([]Track, error)
-	// PushNewAuthorFromAlbum invokes pushNewAuthorFromAlbum operation.
+	// Refresh invokes refresh operation.
 	//
-	// PATCH /albums/{id_album}/authors
-	PushNewAuthorFromAlbum(ctx context.Context, request *PushNewAuthorFromAlbumReq, params PushNewAuthorFromAlbumParams) (*PushNewAuthorFromAlbumOK, error)
-	// PushNewAuthorFromTrack invokes pushNewAuthorFromTrack operation.
-	//
-	// PATCH /tracks/{id_track}/authors
-	PushNewAuthorFromTrack(ctx context.Context, request *PushNewAuthorFromTrackReq, params PushNewAuthorFromTrackParams) (*PushNewAuthorFromTrackOK, error)
+	// POST /refresh
+	Refresh(ctx context.Context, request *RefreshReq) (*TokenPair, error)
 	// Signin invokes signin operation.
 	//
 	// POST /signin
-	Signin(ctx context.Context, request *SigninReq) (*SigninOK, error)
+	Signin(ctx context.Context, request *SigninReq) (*TokenPair, error)
 	// UpdateAlbum invokes updateAlbum operation.
 	//
 	// PATCH /albums/{id_album}
@@ -169,6 +165,132 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 		return c.serverURL
 	}
 	return u
+}
+
+// AddAuthorToAlbum invokes addAuthorToAlbum operation.
+//
+// PATCH /albums/{id_album}/authors
+func (c *Client) AddAuthorToAlbum(ctx context.Context, request *AddAuthorToAlbumReq, params AddAuthorToAlbumParams) (*AddAuthorToAlbumOK, error) {
+	res, err := c.sendAddAuthorToAlbum(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendAddAuthorToAlbum(ctx context.Context, request *AddAuthorToAlbumReq, params AddAuthorToAlbumParams) (res *AddAuthorToAlbumOK, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("addAuthorToAlbum"),
+		semconv.HTTPRequestMethodKey.String("PATCH"),
+		semconv.URLTemplateKey.String("/albums/{id_album}/authors"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, AddAuthorToAlbumOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/albums/"
+	{
+		// Encode "id_album" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id_album",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.IntToString(params.IDAlbum))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/authors"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "PATCH", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeAddAuthorToAlbumRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, AddAuthorToAlbumOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeAddAuthorToAlbumResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
 }
 
 // CreateNewAlbum invokes createNewAlbum operation.
@@ -388,9 +510,9 @@ func (c *Client) sendCreateNewTrack(ctx context.Context, request *CreateNewTrack
 // DeleteAlbum invokes deleteAlbum operation.
 //
 // DELETE /albums/{id_album}
-func (c *Client) DeleteAlbum(ctx context.Context, params DeleteAlbumParams) (*DeleteAlbumNoContent, error) {
-	res, err := c.sendDeleteAlbum(ctx, params)
-	return res, err
+func (c *Client) DeleteAlbum(ctx context.Context, params DeleteAlbumParams) error {
+	_, err := c.sendDeleteAlbum(ctx, params)
+	return err
 }
 
 func (c *Client) sendDeleteAlbum(ctx context.Context, params DeleteAlbumParams) (res *DeleteAlbumNoContent, err error) {
@@ -507,17 +629,17 @@ func (c *Client) sendDeleteAlbum(ctx context.Context, params DeleteAlbumParams) 
 	return result, nil
 }
 
-// DeleteAuthorToAlbum invokes deleteAuthorToAlbum operation.
+// DeleteAuthorFromAlbum invokes deleteAuthorFromAlbum operation.
 //
 // DELETE /albums/{id_album}/authors/{id_author}
-func (c *Client) DeleteAuthorToAlbum(ctx context.Context, params DeleteAuthorToAlbumParams) (*DeleteAuthorToAlbumNoContent, error) {
-	res, err := c.sendDeleteAuthorToAlbum(ctx, params)
-	return res, err
+func (c *Client) DeleteAuthorFromAlbum(ctx context.Context, params DeleteAuthorFromAlbumParams) error {
+	_, err := c.sendDeleteAuthorFromAlbum(ctx, params)
+	return err
 }
 
-func (c *Client) sendDeleteAuthorToAlbum(ctx context.Context, params DeleteAuthorToAlbumParams) (res *DeleteAuthorToAlbumNoContent, err error) {
+func (c *Client) sendDeleteAuthorFromAlbum(ctx context.Context, params DeleteAuthorFromAlbumParams) (res *DeleteAuthorFromAlbumNoContent, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("deleteAuthorToAlbum"),
+		otelogen.OperationID("deleteAuthorFromAlbum"),
 		semconv.HTTPRequestMethodKey.String("DELETE"),
 		semconv.URLTemplateKey.String("/albums/{id_album}/authors/{id_author}"),
 	}
@@ -535,7 +657,7 @@ func (c *Client) sendDeleteAuthorToAlbum(ctx context.Context, params DeleteAutho
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, DeleteAuthorToAlbumOperation,
+	ctx, span := c.cfg.Tracer.Start(ctx, DeleteAuthorFromAlbumOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -604,7 +726,7 @@ func (c *Client) sendDeleteAuthorToAlbum(ctx context.Context, params DeleteAutho
 		var satisfied bitset
 		{
 			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, DeleteAuthorToAlbumOperation, r); {
+			switch err := c.securityBearerAuth(ctx, DeleteAuthorFromAlbumOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -640,148 +762,7 @@ func (c *Client) sendDeleteAuthorToAlbum(ctx context.Context, params DeleteAutho
 	defer resp.Body.Close()
 
 	stage = "DecodeResponse"
-	result, err := decodeDeleteAuthorToAlbumResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
-// DeleteAuthorToTrack invokes deleteAuthorToTrack operation.
-//
-// DELETE /tracks/{id_track}/authors/{id_author}
-func (c *Client) DeleteAuthorToTrack(ctx context.Context, params DeleteAuthorToTrackParams) (*DeleteAuthorToTrackNoContent, error) {
-	res, err := c.sendDeleteAuthorToTrack(ctx, params)
-	return res, err
-}
-
-func (c *Client) sendDeleteAuthorToTrack(ctx context.Context, params DeleteAuthorToTrackParams) (res *DeleteAuthorToTrackNoContent, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("deleteAuthorToTrack"),
-		semconv.HTTPRequestMethodKey.String("DELETE"),
-		semconv.URLTemplateKey.String("/tracks/{id_track}/authors/{id_author}"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, DeleteAuthorToTrackOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [4]string
-	pathParts[0] = "/tracks/"
-	{
-		// Encode "id_track" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "id_track",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.IntToString(params.IDTrack))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/authors/"
-	{
-		// Encode "id_author" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "id_author",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.IntToString(params.IDAuthor))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[3] = encoded
-	}
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "DELETE", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, DeleteAuthorToTrackOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerAuth\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	defer resp.Body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodeDeleteAuthorToTrackResponse(resp)
+	result, err := decodeDeleteAuthorFromAlbumResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -792,9 +773,9 @@ func (c *Client) sendDeleteAuthorToTrack(ctx context.Context, params DeleteAutho
 // DeleteTrack invokes deleteTrack operation.
 //
 // DELETE /tracks/{id_track}
-func (c *Client) DeleteTrack(ctx context.Context, params DeleteTrackParams) (*DeleteTrackNoContent, error) {
-	res, err := c.sendDeleteTrack(ctx, params)
-	return res, err
+func (c *Client) DeleteTrack(ctx context.Context, params DeleteTrackParams) error {
+	_, err := c.sendDeleteTrack(ctx, params)
+	return err
 }
 
 func (c *Client) sendDeleteTrack(ctx context.Context, params DeleteTrackParams) (res *DeleteTrackNoContent, err error) {
@@ -2327,19 +2308,19 @@ func (c *Client) sendGetTracksFromAuthor(ctx context.Context, params GetTracksFr
 	return result, nil
 }
 
-// PushNewAuthorFromAlbum invokes pushNewAuthorFromAlbum operation.
+// Refresh invokes refresh operation.
 //
-// PATCH /albums/{id_album}/authors
-func (c *Client) PushNewAuthorFromAlbum(ctx context.Context, request *PushNewAuthorFromAlbumReq, params PushNewAuthorFromAlbumParams) (*PushNewAuthorFromAlbumOK, error) {
-	res, err := c.sendPushNewAuthorFromAlbum(ctx, request, params)
+// POST /refresh
+func (c *Client) Refresh(ctx context.Context, request *RefreshReq) (*TokenPair, error) {
+	res, err := c.sendRefresh(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendPushNewAuthorFromAlbum(ctx context.Context, request *PushNewAuthorFromAlbumReq, params PushNewAuthorFromAlbumParams) (res *PushNewAuthorFromAlbumOK, err error) {
+func (c *Client) sendRefresh(ctx context.Context, request *RefreshReq) (res *TokenPair, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("pushNewAuthorFromAlbum"),
-		semconv.HTTPRequestMethodKey.String("PATCH"),
-		semconv.URLTemplateKey.String("/albums/{id_album}/authors"),
+		otelogen.OperationID("refresh"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/refresh"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -2355,7 +2336,7 @@ func (c *Client) sendPushNewAuthorFromAlbum(ctx context.Context, request *PushNe
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, PushNewAuthorFromAlbumOperation,
+	ctx, span := c.cfg.Tracer.Start(ctx, RefreshOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -2372,69 +2353,17 @@ func (c *Client) sendPushNewAuthorFromAlbum(ctx context.Context, request *PushNe
 
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [3]string
-	pathParts[0] = "/albums/"
-	{
-		// Encode "id_album" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "id_album",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.IntToString(params.IDAlbum))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/authors"
+	var pathParts [1]string
+	pathParts[0] = "/refresh"
 	uri.AddPathParts(u, pathParts[:]...)
 
 	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "PATCH", u)
+	r, err := ht.NewRequest(ctx, "POST", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
 	}
-	if err := encodePushNewAuthorFromAlbumRequest(request, r); err != nil {
+	if err := encodeRefreshRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, PushNewAuthorFromAlbumOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerAuth\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
 	}
 
 	stage = "SendRequest"
@@ -2445,133 +2374,7 @@ func (c *Client) sendPushNewAuthorFromAlbum(ctx context.Context, request *PushNe
 	defer resp.Body.Close()
 
 	stage = "DecodeResponse"
-	result, err := decodePushNewAuthorFromAlbumResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
-// PushNewAuthorFromTrack invokes pushNewAuthorFromTrack operation.
-//
-// PATCH /tracks/{id_track}/authors
-func (c *Client) PushNewAuthorFromTrack(ctx context.Context, request *PushNewAuthorFromTrackReq, params PushNewAuthorFromTrackParams) (*PushNewAuthorFromTrackOK, error) {
-	res, err := c.sendPushNewAuthorFromTrack(ctx, request, params)
-	return res, err
-}
-
-func (c *Client) sendPushNewAuthorFromTrack(ctx context.Context, request *PushNewAuthorFromTrackReq, params PushNewAuthorFromTrackParams) (res *PushNewAuthorFromTrackOK, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("pushNewAuthorFromTrack"),
-		semconv.HTTPRequestMethodKey.String("PATCH"),
-		semconv.URLTemplateKey.String("/tracks/{id_track}/authors"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, PushNewAuthorFromTrackOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [3]string
-	pathParts[0] = "/tracks/"
-	{
-		// Encode "id_track" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "id_track",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.IntToString(params.IDTrack))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/authors"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "PATCH", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-	if err := encodePushNewAuthorFromTrackRequest(request, r); err != nil {
-		return res, errors.Wrap(err, "encode request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, PushNewAuthorFromTrackOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerAuth\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	defer resp.Body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodePushNewAuthorFromTrackResponse(resp)
+	result, err := decodeRefreshResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -2582,12 +2385,12 @@ func (c *Client) sendPushNewAuthorFromTrack(ctx context.Context, request *PushNe
 // Signin invokes signin operation.
 //
 // POST /signin
-func (c *Client) Signin(ctx context.Context, request *SigninReq) (*SigninOK, error) {
+func (c *Client) Signin(ctx context.Context, request *SigninReq) (*TokenPair, error) {
 	res, err := c.sendSignin(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendSignin(ctx context.Context, request *SigninReq) (res *SigninOK, err error) {
+func (c *Client) sendSignin(ctx context.Context, request *SigninReq) (res *TokenPair, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("signin"),
 		semconv.HTTPRequestMethodKey.String("POST"),

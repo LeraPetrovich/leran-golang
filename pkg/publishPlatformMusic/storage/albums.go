@@ -34,7 +34,7 @@ func (s *storage) GetAllAlbums(ctx context.Context) (*core.AlbumsList, error) {
 	return &core.AlbumsList{Items: albums}, nil
 }
 
-func (s *storage) GetAlbumFromId(ctx context.Context, albumId int) (*core.Album, error) {
+func (s *storage) GetAlbumById(ctx context.Context, albumId int) (*core.Album, error) {
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
@@ -52,7 +52,7 @@ func (s *storage) GetAlbumFromId(ctx context.Context, albumId int) (*core.Album,
 	return &album, err
 }
 
-func (s *storage) GetAlbumFromTrackId(ctx context.Context, trackId int) (*core.Album, error) {
+func (s *storage) GetAlbumByTrack(ctx context.Context, trackId int) (*core.Album, error) {
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
@@ -72,7 +72,7 @@ func (s *storage) GetAlbumFromTrackId(ctx context.Context, trackId int) (*core.A
 	return &album, nil
 }
 
-func (s *storage) GetAllAlbumsFromAuthor(ctx context.Context, authorId int) (*core.AlbumsList, error) {
+func (s *storage) GetAlbumsByAuthor(ctx context.Context, authorId int) (*core.AlbumsList, error) {
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
@@ -155,34 +155,96 @@ func (s *storage) UpdateAlbum(ctx context.Context, idAlbum int, album *core.Albu
 	return album, nil
 }
 
+func (s *storage) UpdateAuthorAlbum(ctx context.Context, idAuthor int, idAlbum int) error {
+	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
+	defer cancel()
+
+	cmdTag, err := s.postgres.Exec(contextWait, `
+	UPDATE author_album
+	SET album_id = $1
+	WHERE author_id = $2
+`, idAlbum, idAuthor)
+	if err != nil {
+		return err
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return nil
+	}
+	return nil
+}
+
 func (s *storage) RemoveAlbum(ctx context.Context, idAlbum int) error {
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
-	_, errAlbumAuthor := s.postgres.Exec(contextWait, `
+	tx, err := s.postgres.Begin(contextWait)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(contextWait)
+
+	_, err = tx.Exec(contextWait, `
 	DELETE FROM author_album
 	WHERE album_id = $1
 	`, idAlbum)
-
-	if errAlbumAuthor != nil {
-		return errAlbumAuthor
+	if err != nil {
+		return err
 	}
 
-	_, errTrack := s.postgres.Exec(contextWait, `
+	_, err = tx.Exec(contextWait, `
 	UPDATE tracks
 	SET fk_id_album = NULL
 	WHERE fk_id_album = $1
 	`, idAlbum)
-
-	if errTrack != nil {
-		return errTrack
+	if err != nil {
+		return err
 	}
 
-	_, errAlbums := s.postgres.Exec(contextWait, `
+	_, err = tx.Exec(contextWait, `
 	DELETE FROM albums
 	WHERE id = $1
 	`, idAlbum)
+	if err != nil {
+		return err
+	}
 
-	return errAlbums
+	return tx.Commit(contextWait)
+}
 
+func (s *storage) RemoveAuthorAlbum(ctx context.Context, idAuthor int, idAlbum int) error {
+	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
+	defer cancel()
+
+	tx, err := s.postgres.Begin(contextWait)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(contextWait)
+
+	_, err = tx.Exec(contextWait, `
+	DELETE FROM author_album
+	WHERE album_id = $1, author_id = $2
+	`, idAlbum, idAuthor)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(contextWait, `
+	UPDATE tracks
+	SET fk_id_album = NULL
+	WHERE fk_id_album = $1
+	`, idAlbum)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(contextWait, `
+	DELETE FROM albums
+	WHERE id = $1
+	`, idAlbum)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(contextWait)
 }
