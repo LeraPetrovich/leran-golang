@@ -20,7 +20,7 @@ type HandlerConfig struct {
 	JwtSecret   []byte
 }
 
-func New(logger *zap.Logger, cnf HandlerConfig) (*Handler, error) {
+func NewHandler(logger *zap.Logger, cnf HandlerConfig) (*Handler, error) {
 	service, err := service.New(logger, service.Config{AppPostgresURI: cnf.PostgresURI})
 
 	if err != nil {

@@ -23,7 +23,7 @@ func main() {
 		JwtSecret:   []byte(cnf.JwtSecret),
 	}
 
-	handler, error := api.New(logger, handlerConfig)
+	handler, error := api.NewHandler(logger, handlerConfig)
 
 	if error != nil {
 		panic(error)
