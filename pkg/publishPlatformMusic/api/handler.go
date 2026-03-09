@@ -7,27 +7,19 @@ import (
 
 type Handler struct {
 	logger            *zap.Logger
-	privateAppService *appService.Service
+	privateAppService appService.ServiceInterface
 	jwtSecret         []byte
 }
 
 type HandlerConfig struct {
-	AppPostgresURI string
-	JwtSecret      []byte
+	JwtSecret []byte
 }
 
-func NewHandler(logger *zap.Logger, config HandlerConfig) (*Handler, error) {
-	service, err := appService.NewService(logger, &appService.ServiceConfig{
-		AppPostgresURI: config.AppPostgresURI,
-	})
-
-	if err != nil {
-		return nil, err
-	}
+func NewHandler(logger *zap.Logger, service appService.ServiceInterface, config HandlerConfig) *Handler {
 
 	return &Handler{
 		logger:            logger,
 		privateAppService: service,
 		jwtSecret:         config.JwtSecret,
-	}, nil
+	}
 }

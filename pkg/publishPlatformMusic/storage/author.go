@@ -11,7 +11,7 @@ func (s *storage) GetAuthorByUsername(ctx context.Context, username string) (*co
 	defer cancel()
 
 	var author core.Author
-	err := s.postgres.QueryRow(contextWait, `
+	err := s.db.QueryRow(contextWait, `
 	SELECT id, username, name
 	FROM authors
 	WHERE username = $1
@@ -27,7 +27,7 @@ func (s *storage) GetRefreshToken(ctx context.Context, authorId int) (string, er
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 	var refreshToken string
-	err := s.postgres.QueryRow(contextWait, `
+	err := s.db.QueryRow(contextWait, `
 	SELECT refresh_token
 	FROM authors
 	WHERE id = $1
@@ -43,7 +43,7 @@ func (s *storage) GetAuthorByRefreshToken(ctx context.Context, refreshToken stri
 	defer cancel()
 
 	var author core.Author
-	err := s.postgres.QueryRow(contextWait, `
+	err := s.db.QueryRow(contextWait, `
 	SELECT id, username, name
 	FROM authors
 	WHERE refresh_token = $1
@@ -59,7 +59,7 @@ func (s *storage) UpdateRefreshToken(ctx context.Context, authorId int, token st
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
-	cmdTag, err := s.postgres.Exec(contextWait, `
+	cmdTag, err := s.db.Exec(contextWait, `
 	UPDATE authors
 	SET refresh_token = $1
 	WHERE id = $2
@@ -83,7 +83,7 @@ func (s *storage) GetAllAuthors(ctx context.Context) (*core.AuthorsList, error) 
 
 	var authors []*core.Author
 
-	rows, err := s.postgres.Query(contextWait, `
+	rows, err := s.db.Query(contextWait, `
 	SELECT id, username, name
 	FROM authors
 	`)
@@ -110,7 +110,7 @@ func (s *storage) GetAuthorById(ctx context.Context, authorId int) (*core.Author
 	defer cancel()
 
 	var author core.Author
-	err := s.postgres.QueryRow(contextWait, `
+	err := s.db.QueryRow(contextWait, `
 	SELECT id, username, name
 	FROM authors
 	WHERE id = $1
@@ -126,7 +126,7 @@ func (s *storage) GetAuthorsByAlbum(ctx context.Context, albumId int) (*core.Aut
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
-	rows, err := s.postgres.Query(contextWait, `
+	rows, err := s.db.Query(contextWait, `
 	SELECT a.id, a.name, a.username
 	FROM authors a
 	JOIN author_album aa ON a.id = aa.author_id
@@ -158,7 +158,7 @@ func (s *storage) GetAuthorsByTrack(ctx context.Context, trackId int) (*core.Aut
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
-	rows, err := s.postgres.Query(contextWait, `
+	rows, err := s.db.Query(contextWait, `
 	SELECT a.id, a.name, a.username
 	FROM authors a
 	JOIN author_album aa ON a.id = aa.author_id

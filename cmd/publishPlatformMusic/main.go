@@ -3,12 +3,15 @@ package main
 import (
 	"fmt"
 
+	"example.com/learn/pkg/publishPlatformMusic/core/migrations"
+	"example.com/learn/pkg/publishPlatformMusic/service/music"
 	"go.uber.org/zap"
 
 	"example.com/learn/pkg/publishPlatformMusic/api"
 	"example.com/learn/pkg/publishPlatformMusic/config"
+	"example.com/learn/pkg/publishPlatformMusic/db"
 	"example.com/learn/pkg/publishPlatformMusic/server"
-	migrations "example.com/learn/pkg/publishPlatformMusic/storage/migrations"
+	"example.com/learn/pkg/publishPlatformMusic/storage"
 )
 
 func main() {
@@ -22,14 +25,16 @@ func main() {
 	if err := migrations.Run(cnf.App.PostgresURI); err != nil {
 		logger.Fatal("postgres connection error", zap.Error(err))
 	}
-
-	handler, err := api.NewHandler(logger, api.HandlerConfig{
-		AppPostgresURI: cnf.App.PostgresURI,
-		JwtSecret:      []byte(cnf.JwtSecret),
-	})
+	postgres, err := db.NewPostgresDb(cnf.App.PostgresURI, cnf.App.PostgresConnections)
 	if err != nil {
-		logger.Fatal("api.NewHandler() failed", zap.Error(err))
+		panic(err)
 	}
+	appStorage := storage.New(logger, postgres)
+	appService := music.NewService(logger, appStorage)
+
+	handler := api.NewHandler(logger, appService, api.HandlerConfig{
+		JwtSecret: []byte(cnf.JwtSecret),
+	})
 
 	srv, err := server.NewServer(&server.ServerConfig{
 		Handler:   handler,

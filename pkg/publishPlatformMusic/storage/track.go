@@ -12,7 +12,7 @@ func (s *storage) GetAllTracks(ctx context.Context) (*core.TrackList, error) {
 
 	var tracks []*core.Track
 
-	rows, err := s.postgres.Query(contextTime, `
+	rows, err := s.db.Query(contextTime, `
 	SELECT id, fk_id_album, name
 	FROM tracks
 	`)
@@ -38,7 +38,7 @@ func (s *storage) GetTrackById(ctx context.Context, trackId int) (*core.Track, e
 	defer cancel()
 
 	var track core.Track
-	err := s.postgres.QueryRow(contextTime, `
+	err := s.db.QueryRow(contextTime, `
     SELECT id, fk_id_album, name 
 	FROM tracks
     WHERE id = $1
@@ -56,7 +56,7 @@ func (s *storage) GetTracksByAlbum(ctx context.Context, albumId int) (*core.Trac
 
 	var tracks []*core.Track
 
-	rows, err := s.postgres.Query(contextTime, `
+	rows, err := s.db.Query(contextTime, `
 	SELECT id, fk_id_album, name
 	FROM tracks
 	WHERE fk_id_album = $1
@@ -83,7 +83,7 @@ func (s *storage) GetAllTracksByAuthor(ctx context.Context, authorId int) (*core
 
 	var tracks []*core.Track
 
-	rows, err := s.postgres.Query(contextTime, `
+	rows, err := s.db.Query(contextTime, `
 	SELECT t.id, t.fk_id_album, t.name
 	FROM tracks t
 	JOIN author_album aa ON t.fk_id_album = aa.album_id
@@ -111,7 +111,7 @@ func (s *storage) CreateNewTrack(ctx context.Context, track *core.Track, authorI
 	defer cancel()
 
 	var id int
-	err := s.postgres.QueryRow(contextTime, `
+	err := s.db.QueryRow(contextTime, `
 	INSERT INTO tracks (name, fk_id_album)
 	VALUES ($1, $2)
 	RETURNING id
@@ -129,7 +129,7 @@ func (s *storage) UpdateTrack(ctx context.Context, idTrack int, track *core.Trac
 	defer cancel()
 
 	//update track table
-	cmdTag, err := s.postgres.Exec(contextTime, `
+	cmdTag, err := s.db.Exec(contextTime, `
 	UPDATE tracks
 	SET name = $1, fk_id_album = $2
 	WHERE id = $3
@@ -152,7 +152,7 @@ func (s *storage) RemoveTrack(ctx context.Context, idTrack int) error {
 	defer cancel()
 
 	//delete track from track table
-	_, err := s.postgres.Exec(contextTime, `
+	_, err := s.db.Exec(contextTime, `
 	DELETE FROM tracks
 	WHERE id = $1
 	`, idTrack)

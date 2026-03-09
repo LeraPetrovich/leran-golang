@@ -12,7 +12,7 @@ func (s *storage) GetAllAlbums(ctx context.Context) (*core.AlbumsList, error) {
 
 	var albums []*core.Album
 
-	rows, err := s.postgres.Query(contextWait, `
+	rows, err := s.db.Query(contextWait, `
 	SELECT id, title, description
 	FROM albums
 	`)
@@ -39,7 +39,7 @@ func (s *storage) GetAlbumById(ctx context.Context, albumId int) (*core.Album, e
 	defer cancel()
 
 	var album core.Album
-	err := s.postgres.QueryRow(contextWait, `
+	err := s.db.QueryRow(contextWait, `
 	SELECT id, title, description
 	FROM albums
 	WHERE id = $1
@@ -58,7 +58,7 @@ func (s *storage) GetAlbumByTrack(ctx context.Context, trackId int) (*core.Album
 
 	var album core.Album
 
-	err := s.postgres.QueryRow(contextWait, `
+	err := s.db.QueryRow(contextWait, `
 	SELECT a.id, a.title, a.description
 	FROM albums a
 	JOIN tracks t ON t.fk_id_album = a.id
@@ -78,7 +78,7 @@ func (s *storage) GetAlbumsByAuthor(ctx context.Context, authorId int) (*core.Al
 
 	var albums []*core.Album
 
-	rows, err := s.postgres.Query(contextWait, `
+	rows, err := s.db.Query(contextWait, `
 	SELECT a.id, a.title, a.description
 	FROM albums a
 	JOIN author_album aa ON a.id = aa.album_id
@@ -107,7 +107,7 @@ func (s *storage) CreateNewAlbum(ctx context.Context, album *core.Album, authorI
 	defer cancel()
 
 	var id int
-	err := s.postgres.QueryRow(contextWait, `
+	err := s.db.QueryRow(contextWait, `
 	INSERT INTO albums (title, description)
 	VALUES ($1, $2)
 	RETURNING id
@@ -117,7 +117,7 @@ func (s *storage) CreateNewAlbum(ctx context.Context, album *core.Album, authorI
 		return nil, err
 	}
 
-	errAlbumAuthor := s.postgres.QueryRow(contextWait, `
+	errAlbumAuthor := s.db.QueryRow(contextWait, `
 	INSERT INTO author_album (album_id, author_id)
 	VALUES ($1, $2)
 	RETURNING album_id
@@ -136,7 +136,7 @@ func (s *storage) UpdateAlbum(ctx context.Context, idAlbum int, album *core.Albu
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
-	cmdTag, err := s.postgres.Exec(contextWait, `
+	cmdTag, err := s.db.Exec(contextWait, `
 	UPDATE albums
 	SET title = $1, description = $2
 	WHERE id = $3
@@ -159,7 +159,7 @@ func (s *storage) UpdateAuthorAlbum(ctx context.Context, idAuthor int, idAlbum i
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
-	cmdTag, err := s.postgres.Exec(contextWait, `
+	cmdTag, err := s.db.Exec(contextWait, `
 	UPDATE author_album
 	SET album_id = $1
 	WHERE author_id = $2
@@ -177,7 +177,7 @@ func (s *storage) RemoveAlbum(ctx context.Context, idAlbum int) error {
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
-	tx, err := s.postgres.Begin(contextWait)
+	tx, err := s.db.Begin(contextWait)
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ func (s *storage) RemoveAuthorAlbum(ctx context.Context, idAuthor int, idAlbum i
 	contextWait, cancel := context.WithTimeout(ctx, fastQueryTimeout)
 	defer cancel()
 
-	tx, err := s.postgres.Begin(contextWait)
+	tx, err := s.db.Begin(contextWait)
 	if err != nil {
 		return err
 	}
